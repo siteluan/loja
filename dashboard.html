@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            
+            <div class="user-info">
+                <div class="user-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="user-details">
+                    <h3 id="userName">Carregando...</h3>
+                    <p id="userEmail">carregando...</p>
+                </div>
+            </div>
+            
+            <nav class="sidebar-menu">
+                <ul>
+                    <li>
+                        <a href="#" class="active" data-section="dashboard">
+                            <i class="fas fa-home"></i>
+                            <span>Início</span>
+                        </a>
+                    </li>
+                    <li>
+                        <!-- Alteração 1: Link direto para cadprodutos.html -->
+                        <a href="cadprodutos.html">
+                            <i class="fas fa-box"></i>
+                            <span>Cadastrar Produtos</span>
+                        </a>
+                    </li>
+                    <li>
+                        <!-- Alteração 2: Link direto para cardapio.html -->
+                        <a href="cardapio.html">
+                            <i class="fas fa-book-open"></i>
+                            <span>Cardápio Online</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="vendas-dia.html">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span>Vendas do Dia</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" data-section="settings">
+                            <i class="fas fa-cog"></i>
+                            <span>Configurações</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sair da Conta</span>
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="header-left">
+                    <h1 id="pageTitle">Painel Administrativo</h1>
+                    <p id="pageSubtitle">Gerencie seu negócio de forma simples e eficiente</p>
+                </div>
+                <div class="header-right">
+                    <div class="date-time">
+                        <span id="currentDate"></span>
+                        <span id="currentTime"></span>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Dashboard Content -->
+            <div class="content-wrapper">
+                <section id="dashboardSection" class="content-section active">
+                    <div class="welcome-card">
+                        <div class="welcome-content">
+                            <h2>Bem-vindo ao seu Painel!</h2>
+                            <p>Selecione uma das opções abaixo para gerenciar seu negócio:</p>
+                        </div>
+                        <div class="welcome-icon">
+                            <i class="fas fa-hand-wave"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-grid">
+                        <!-- Alteração 3: Link direto no card de produtos -->
+                        <a href="cadprodutos.html" class="dashboard-card">
+                            <div class="card-icon" style="background-color: rgba(74, 111, 165, 0.1);">
+                                <i class="fas fa-box" style="color: #4a6fa5;"></i>
+                            </div>
+                            <h3>Cadastrar Produtos</h3>
+                            <p>Adicione, edite ou remova produtos do seu catálogo</p>
+                            <div class="card-arrow">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                        </a>
+                        
+                        <!-- Alteração 4: Link direto no card de cardápio -->
+                        <a href="cardapio.html" class="dashboard-card">
+                            <div class="card-icon" style="background-color: rgba(22, 105, 122, 0.1);">
+                                <i class="fas fa-book-open" style="color: #16697a;"></i>
+                            </div>
+                            <h3>Cardápio Online</h3>
+                            <p>Visualize e gerencie o cardápio digital do seu restaurante</p>
+                            <div class="card-arrow">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                        </a>
+                        
+                        <a href="vendas-dia.html" class="dashboard-card">
+                            <div class="card-icon" style="background-color: rgba(255, 166, 43, 0.1);">
+                                <i class="fas fa-shopping-cart" style="color: #ffa62b;"></i>
+                            </div>
+                            <h3>Vendas do Dia</h3>
+                            <p>Acompanhe as vendas e relatórios financeiros</p>
+                            <div class="card-arrow">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                        </a>
+                        
+                        <a href="#" class="dashboard-card" data-section="settings">
+                            <div class="card-icon" style="background-color: rgba(76, 175, 80, 0.1);">
+                                <i class="fas fa-cog" style="color: #4caf50;"></i>
+                            </div>
+                            <h3>Configurações</h3>
+                            <p>Gerencie sua conta e preferências do sistema</p>
+                            <div class="card-arrow">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    <div class="quick-stats">
+                        <div class="quick-stat">
+                            <h4>Último Acesso</h4>
+                            <p id="lastAccess">Hoje às 09:30</p>
+                        </div>
+                        <div class="quick-stat">
+                            <h4>Status do Sistema</h4>
+                            <p class="status-active">Tudo Operacional</p>
+                        </div>
+                        <div class="quick-stat">
+                            <h4>Suporte</h4>
+                            <p>suporte@empresa.com</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Seções vazias para navegação -->
+                <section id="productsSection" class="content-section">
+                    <div class="section-placeholder">
+                        <i class="fas fa-box"></i>
+                        <h2>Cadastrar Produtos</h2>
+                        <p>Esta seção estará disponível em breve. Você será redirecionado para o sistema de cadastro de produtos.</p>
+                        <!-- Alteração 5: Link no botão de voltar -->
+                        <a href="cadprodutos.html" class="btn-back">Ir para Cadastro de Produtos</a>
+                        <button class="btn-back" onclick="window.location.href='index.html'">Voltar ao Painel</button>
+                    </div>
+                </section>
+                
+                <section id="menuSection" class="content-section">
+                    <div class="section-placeholder">
+                        <i class="fas fa-book-open"></i>
+                        <h2>Cardápio Online</h2>
+                        <p>Esta seção estará disponível em breve. Você será redirecionado para o sistema de cardápio online.</p>
+                        <!-- Alteração 6: Link no botão de voltar -->
+                        <a href="cardapio.html" class="btn-back">Ir para Cardápio Online</a>
+                        <button class="btn-back" onclick="window.location.href='index.html'">Voltar ao Painel</button>
+                    </div>
+                </section>
+                
+                <section id="salesSection" class="content-section">
+                    <div class="section-placeholder">
+                        <i class="fas fa-shopping-cart"></i>
+                        <h2>Vendas do Dia</h2>
+                        <p>Esta seção estará disponível em breve. Você será redirecionado para o sistema de vendas.</p>
+                        <button class="btn-back">Voltar ao Painel</button>
+                    </div>
+                </section>
+                
+                <section id="settingsSection" class="content-section">
+                    <div class="section-placeholder">
+                        <i class="fas fa-cog"></i>
+                        <h2>Configurações da Conta</h2>
+                        <p>Esta seção estará disponível em breve. Você será redirecionado para as configurações da conta.</p>
+                        <button class="btn-back">Voltar ao Painel</button>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
+    <!-- JavaScript do Dashboard -->
+     <script src="firebase-config.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>

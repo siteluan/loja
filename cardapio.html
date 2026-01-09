@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cardápio Digital</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="cardapio.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <h1><i class="fas fa-utensils"></i> Cardápio</h1>
+                </div>
+                
+                <div class="header-actions">
+                    <div class="carrinho-info" id="carrinhoInfo">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="carrinho-count" id="carrinhoCount">0</span>
+                        <span class="carrinho-total" id="carrinhoTotal">R$ 0,00</span>
+                    </div>
+                    <button class="btn btn-primary" id="verCarrinhoBtn">
+                        <i class="fas fa-shopping-bag"></i>
+                        Carrinho
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Menu de Categorias -->
+    <nav class="categorias-nav">
+        <div class="container">
+            <div class="categorias-list" id="categoriasList">
+                <!-- Categorias serão carregadas dinamicamente -->
+                <button class="categoria-btn active" data-categoria="todos">
+                    <i class="fas fa-star"></i> Todos
+                </button>
+                <div class="loading-categorias">
+                    <i class="fas fa-spinner fa-spin"></i> Carregando...
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Produtos -->
+            <section class="produtos-section">
+                <div class="section-header">
+                   
+                    <div class="search-container">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchProdutos" placeholder="Buscar produtos...">
+                    </div>
+                </div>
+                
+                <div class="produtos-grid" id="produtosGrid">
+                    <!-- Produtos serão carregados aqui -->
+                    <div class="loading-produtos">
+                        <div class="spinner"></div>
+                        <p>Carregando produtos...</p>
+                    </div>
+                </div>
+                
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <i class="fas fa-utensils"></i>
+                    <h3>Nenhum produto disponível</h3>
+                    <p>Volte mais tarde!</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Carrinho de Compras (Modal) -->
+    <div class="carrinho-modal" id="carrinhoModal">
+        <div class="carrinho-content">
+            <div class="carrinho-header">
+                <h3><i class="fas fa-shopping-cart"></i> Meu Carrinho</h3>
+                <button class="close-btn" id="closeCarrinhoBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="carrinho-body">
+                <div class="carrinho-empty" id="carrinhoEmpty">
+                    <i class="fas fa-shopping-cart"></i>
+                    <p>Carrinho vazio</p>
+                    <small>Adicione produtos</small>
+                </div>
+                
+                <div class="carrinho-items" id="carrinhoItems">
+                    <!-- Itens do carrinho serão carregados aqui -->
+                </div>
+            </div>
+            
+            <div class="carrinho-footer">
+                <div class="carrinho-totais">
+                    <div class="total-item">
+                        <span>Subtotal:</span>
+                        <span id="subtotal">R$ 0,00</span>
+                    </div>
+                    <div class="total-item">
+                        <span>Taxa:</span>
+                        <span id="taxaEntrega">R$ 5,00</span>
+                    </div>
+                    <div class="total-item total">
+                        <span>Total:</span>
+                        <span id="totalCarrinho">R$ 5,00</span>
+                    </div>
+                </div>
+                
+                <div class="carrinho-actions">
+                    <button class="btn btn-secondary" id="limparCarrinhoBtn">
+                        <i class="fas fa-trash"></i> Limpar
+                    </button>
+                    <button class="btn btn-primary" id="finalizarPedidoBtn">
+                        <i class="fas fa-check"></i> Finalizar Pedido
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal do Produto -->
+    <div class="produto-modal" id="produtoModal">
+        <div class="produto-modal-content">
+            <div class="produto-modal-header">
+                <button class="close-btn" id="closeProdutoBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="produto-modal-body" id="produtoModalBody">
+                <!-- Conteúdo do modal será carregado aqui -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Script principal do cardápio -->
+    <script src="firebase-config.js"></script>
+    <script src="cardapio.js"></script>
+</body>
+</html>

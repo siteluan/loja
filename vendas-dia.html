@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendas do Dia</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="vendas-dia.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <nav class="sidebar-menu">
+                <ul>
+                    <li><a href="vendas-dia.html" class="active"><i class="fas fa-chart-line"></i> <span>Vendas do Dia</span></a></li>
+                </ul>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <button class="btn-voltar" id="btnVoltarDashboard">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Voltar</span>
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="main-header">
+                <div class="header-left">
+                    <h1>Vendas do Dia</h1>
+                    <p>Status completo das vendas</p>
+                </div>
+                <div class="date-time">
+                    <div id="currentDate"></div>
+                    <div id="currentTime"></div>
+                </div>
+            </header>
+            
+            <div class="content-wrapper">
+                <section class="content-section active" id="vendas-dia-section">
+                    <!-- Abas de Status -->
+                    <div class="abas-container">
+                        <div class="abas-nav">
+                            <button class="aba-btn active" data-aba="finalizadas">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Finalizadas</span>
+                                <span class="aba-contador" id="contadorFinalizadas">0</span>
+                            </button>
+                            <button class="aba-btn" data-aba="pendentes">
+                                <i class="fas fa-clock"></i>
+                                <span>Pendentes</span>
+                                <span class="aba-contador" id="contadorPendentes">0</span>
+                            </button>
+                            <button class="aba-btn" data-aba="canceladas">
+                                <i class="fas fa-times-circle"></i>
+                                <span>Canceladas</span>
+                                <span class="aba-contador" id="contadorCanceladas">0</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Conteúdo das Abas -->
+                        <div class="abas-conteudo">
+                            <!-- Aba Finalizadas -->
+                            <div class="aba-conteudo active" id="aba-finalizadas">
+                                <!-- Filtros do Dia -->
+                                <div class="filtros-container">
+                                    <div class="filtro-card">
+                                        <div class="filtro-opcoes">
+                                            <div class="filtro-group">
+                                                <label for="dataFiltro">Data:</label>
+                                                <input type="date" id="dataFiltro" value="">
+                                            </div>
+                                            <div class="filtro-group">
+                                                <label for="categoriaFiltro">Categoria:</label>
+                                                <select id="categoriaFiltro">
+                                                    <option value="todos">Todas as Categorias</option>
+                                                    <option value="lanches">Lanches</option>
+                                                    <option value="bebidas">Bebidas</option>
+                                                    <option value="sobremesas">Sobremesas</option>
+                                                </select>
+                                            </div>
+                                            <button class="btn-hoje" id="btnHoje">
+                                                <i class="fas fa-calendar-day"></i> Hoje
+                                            </button>
+                                            <button class="btn-filtrar" id="btnFiltrar">
+                                                <i class="fas fa-filter"></i> Filtrar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Estatísticas Resumo -->
+                                <div class="resumo-container">
+                                    <div class="resumo-card total-vendas">
+                                        <div class="resumo-icon">
+                                            <i class="fas fa-cash-register"></i>
+                                        </div>
+                                        <div class="resumo-info">
+                                            <h4>Total em Vendas</h4>
+                                            <p id="totalVendas">R$ 0,00</p>
+                                            <span id="quantidadeVendas">0 vendas</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="resumo-card produtos-vendidos">
+                                        <div class="resumo-icon">
+                                            <i class="fas fa-hamburger"></i>
+                                        </div>
+                                        <div class="resumo-info">
+                                            <h4>Itens Vendidos</h4>
+                                            <p id="totalProdutos">0</p>
+                                            <span id="produtosDiferentes">unidades</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="resumo-card ticket-medio">
+                                        <div class="resumo-icon">
+                                            <i class="fas fa-chart-pie"></i>
+                                        </div>
+                                        <div class="resumo-info">
+                                            <h4>Ticket Médio</h4>
+                                            <p id="ticketMedio">R$ 0,00</p>
+                                            <span>por venda</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="resumo-card melhor-produto">
+                                        <div class="resumo-icon">
+                                            <i class="fas fa-crown"></i>
+                                        </div>
+                                        <div class="resumo-info">
+                                            <h4>Mais Vendido</h4>
+                                            <p id="melhorProduto">-</p>
+                                            <span id="melhorProdutoQuantidade">0 un</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Tabela de Vendas Finalizadas -->
+                                <div class="tabela-container">
+                                    <div class="tabela-header">
+                                        <h3><i class="fas fa-list"></i> Vendas Finalizadas</h3>
+                                        <div class="tabela-controles">
+                                            <div class="search-box">
+                                                <i class="fas fa-search"></i>
+                                                <input type="text" id="searchProdutos" placeholder="Buscar produto...">
+                                            </div>
+                                            <button class="btn-exportar" id="btnExportarFinalizadas">
+                                                <i class="fas fa-file-export"></i> Exportar
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="tabela-wrapper">
+                                        <table id="tabelaFinalizadas">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID Pedido</th>
+                                                    <th>Produto</th>
+                                                    <th>Qtd</th>
+                                                    <th>Valor</th>
+                                                    <th>Total</th>
+                                                    <th>Horário</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabelaFinalizadasBody">
+                                                <tr class="loading-row">
+                                                    <td colspan="6">
+                                                        <div class="loading-indicator">
+                                                            <i class="fas fa-spinner fa-spin"></i>
+                                                            <span>Carregando vendas finalizadas...</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <div class="tabela-footer">
+                                        <div class="pagination-info">
+                                            Total: <span id="totalFinalizadas">0</span> vendas
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Aba Pendentes -->
+                            <div class="aba-conteudo" id="aba-pendentes">
+                                <div class="tabela-container">
+                                    <div class="tabela-header">
+                                        <h3><i class="fas fa-clock"></i> Vendas Pendentes</h3>
+                                        <div class="tabela-controles">
+                                            <div class="search-box">
+                                                <i class="fas fa-search"></i>
+                                                <input type="text" id="searchPendentes" placeholder="Buscar produto...">
+                                            </div>
+                                            <button class="btn-finalizar-todos" id="btnFinalizarTodos">
+                                                <i class="fas fa-check-double"></i> Finalizar Todos
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="tabela-wrapper">
+                                        <table id="tabelaPendentes">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID Pedido</th>
+                                                    <th>Produto</th>
+                                                    <th>Qtd</th>
+                                                    <th>Valor</th>
+                                                    <th>Total</th>
+                                                    <th>Horário</th>
+                                                    <th>Ações</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabelaPendentesBody">
+                                                <tr class="loading-row">
+                                                    <td colspan="7">
+                                                        <div class="loading-indicator">
+                                                            <i class="fas fa-spinner fa-spin"></i>
+                                                            <span>Carregando vendas pendentes...</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <div class="tabela-footer">
+                                        <div class="pagination-info">
+                                            Total: <span id="totalPendentes">0</span> vendas pendentes
+                                        </div>
+                                        <div class="tabela-info">
+                                            <i class="fas fa-info-circle"></i>
+                                            <span>Clique para finalizar vendas pendentes</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Aba Canceladas -->
+                            <div class="aba-conteudo" id="aba-canceladas">
+                                <div class="tabela-container">
+                                    <div class="tabela-header">
+                                        <h3><i class="fas fa-times-circle"></i> Vendas Canceladas</h3>
+                                        <div class="tabela-controles">
+                                            <div class="search-box">
+                                                <i class="fas fa-search"></i>
+                                                <input type="text" id="searchCanceladas" placeholder="Buscar produto...">
+                                            </div>
+                                            <button class="btn-exportar" id="btnExportarCanceladas">
+                                                <i class="fas fa-file-export"></i> Exportar
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="tabela-wrapper">
+                                        <table id="tabelaCanceladas">
+                                            <thead>
+                                                <tr>
+                                                    <th>ID Pedido</th>
+                                                    <th>Produto</th>
+                                                    <th>Qtd</th>
+                                                    <th>Valor</th>
+                                                    <th>Total</th>
+                                                    <th>Horário</th>
+                                                    <th>Motivo</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="tabelaCanceladasBody">
+                                                <tr class="loading-row">
+                                                    <td colspan="7">
+                                                        <div class="loading-indicator">
+                                                            <i class="fas fa-spinner fa-spin"></i>
+                                                            <span>Carregando vendas canceladas...</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <div class="tabela-footer">
+                                        <div class="pagination-info">
+                                            Total: <span id="totalCanceladas">0</span> vendas canceladas
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Scripts -->
+    <script src="firebase-config.js"></script>
+    <script src="vendas-dia.js"></script>
+</body>
+</html>

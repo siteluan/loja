@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Firebase Auth</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="login-form-container">
+            <div class="brand-header">
+                <div class="logo">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h1>Faça seu Login</h1>
+                <p>Entre com suas credenciais para acessar o sistema</p>
+            </div>
+            
+            <div id="message" class="message"></div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="email" class="form-control" placeholder="seu@email.com" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" class="form-control" placeholder="Digite sua senha" required>
+                        <button type="button" class="password-toggle" id="togglePassword">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-options">
+                    <div class="remember-me">
+                        <input type="checkbox" id="remember">
+                        <label for="remember">Lembrar-me</label>
+                    </div>
+                    <a href="#" class="forgot-password" id="forgotPassword">Esqueceu sua senha?</a>
+                </div>
+                
+                <button type="submit" class="btn btn-login" id="loginBtn">
+                    <span id="btnText">Entrar</span>
+                    <div id="btnLoader" style="display: none;">
+                        <i class="fas fa-spinner fa-spin"></i> Processando...
+                    </div>
+                </button>
+            </form>
+        </div>
+        
+        <div class="illustration-container">
+            <div class="illustration">
+                <i class="fas fa-user-lock"></i>
+            </div>
+            <h2>Sistema Seguro</h2>
+            <p>Autenticação via Firebase para garantir a segurança dos seus dados com criptografia de ponta.</p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
+    <!-- Meu JavaScript -->
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
