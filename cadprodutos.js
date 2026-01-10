@@ -46,6 +46,7 @@ let produtos = [];
 let produtosFiltrados = [];
 let isSubmitting = false;
 let currentFilter = 'todos';
+let produtoEditando = null; // Armazena o ID do produto em edição
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
@@ -332,14 +333,28 @@ async function cadastrarProduto(event) {
     
     try {
         // Mostrar loading
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cadastrando...';
+        if (produtoEditando) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Atualizando...';
+        } else {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cadastrando...';
+        }
         submitBtn.disabled = true;
         
-        // Salvar no Firebase
-        await db.collection("produtos").add(produtoData);
-        
-        // Sucesso
-        mostrarToast('Produto cadastrado com sucesso!', 'success');
+        // Se estiver editando, atualizar produto existente
+        if (produtoEditando) {
+            await db.collection("produtos").doc(produtoEditando).update({
+                ...produtoData,
+                dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            mostrarToast('Produto atualizado com sucesso!', 'success');
+            produtoEditando = null;
+            submitBtn.innerHTML = '<i class="fas fa-check"></i> Cadastrar Produto';
+        } else {
+            // Senão, criar novo produto
+            await db.collection("produtos").add(produtoData);
+            mostrarToast('Produto cadastrado com sucesso!', 'success');
+        }
         
         // Limpar formulário
         setTimeout(limparFormulario, 500);
@@ -352,7 +367,7 @@ async function cadastrarProduto(event) {
         
     } catch (error) {
         console.error('Erro ao cadastrar:', error);
-        mostrarToast('Erro ao cadastrar produto', 'error');
+        mostrarToast('Erro ao salvar produto', 'error');
     } finally {
         // Restaurar botão
         setTimeout(() => {
@@ -426,10 +441,18 @@ function limparFormulario() {
     atualizarStatusTexto();
     atualizarIndicadorEstoque();
     
+    // Resetar estado de edição
+    produtoEditando = null;
+    submitBtn.innerHTML = '<i class="fas fa-check"></i> Cadastrar Produto';
+    submitBtn.disabled = false;
+    
+    // Atualizar título do formulário
+    document.querySelector('.form-section h2').innerHTML = '<i class="fas fa-edit"></i> Informações do Produto';
+    
     // Focar no primeiro campo
     nomeProduto.focus();
     
-    mostrarToast('Formulário limpo', 'success');
+    // NOTIFICAÇÃO REMOVIDA: Não mostrar toast ao limpar formulário
 }
 
 // ===== CARREGAMENTO DE PRODUTOS =====
@@ -655,6 +678,11 @@ function criarCardProduto(produto, index) {
                 <i class="fas ${produto.status === 'on' ? 'fa-toggle-off' : 'fa-toggle-on'}"></i>
                 ${produto.status === 'on' ? 'Desativar' : 'Ativar'}
             </button>
+            <!-- BOTÃO EDITAR ADICIONADO AQUI -->
+            <button class="product-action edit" onclick="editarProduto('${produto.id}')">
+                <i class="fas fa-edit"></i>
+                Editar
+            </button>
             <button class="product-action delete" onclick="excluirProduto('${produto.id}', '${produto.nome}')">
                 <i class="fas fa-trash-alt"></i>
                 Excluir
@@ -696,13 +724,86 @@ async function alternarStatusProduto(id, estaAtivo) {
             dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
         });
         
-        mostrarToast(`Produto ${estaAtivo ? 'desativado' : 'ativado'} com sucesso`, 'success');
+        // NOTIFICAÇÃO REMOVIDA: Não mostrar toast ao alternar status
+        // Apenas atualizar a interface silenciosamente
         
         // Atualizar estatísticas da sidebar
         carregarEstatisticasSidebar();
     } catch (error) {
         console.error('Erro ao alternar status:', error);
         mostrarToast('Erro ao alterar status do produto', 'error');
+    }
+}
+
+// Editar produto
+async function editarProduto(id) {
+    try {
+        // Buscar dados do produto
+        const doc = await db.collection("produtos").doc(id).get();
+        if (!doc.exists) {
+            mostrarToast('Produto não encontrado', 'error');
+            return;
+        }
+        
+        const produto = doc.data();
+        
+        // Preencher formulário com dados do produto
+        nomeProduto.value = produto.nome || '';
+        descricaoProduto.value = produto.descricao || '';
+        categoriaProduto.value = produto.categoria || 'outro';
+        precoProduto.value = produto.preco || 0;
+        
+        // Usar quantidade se existir, senão usar quantidadeEstoque
+        quantidadeEstoque.value = produto.quantidade || produto.quantidadeEstoque || 0;
+        
+        statusProduto.checked = produto.status === 'on';
+        atualizarStatusTexto();
+        
+        tipoProdutoInput.value = produto.tipo || 'normal';
+        
+        // Selecionar tipo correto
+        document.querySelectorAll('.type-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.type === (produto.tipo || 'normal')) {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Mostrar/ocultar categorias para adicionais
+        if (produto.tipo === 'adicional') {
+            categoriasAdicionaisContainer.style.display = 'block';
+            
+            // Marcar checkboxes de categorias
+            document.querySelectorAll('.category-chip input').forEach(cb => {
+                cb.checked = produto.categoriasAdicionais && 
+                            produto.categoriasAdicionais.includes(cb.value);
+            });
+        } else {
+            categoriasAdicionaisContainer.style.display = 'none';
+        }
+        
+        imagemURL.value = produto.imagemURL || '';
+        atualizarPreviewImagem();
+        atualizarIndicadorEstoque();
+        
+        // Armazenar ID do produto em edição
+        produtoEditando = id;
+        
+        // Atualizar botão e título do formulário
+        submitBtn.innerHTML = '<i class="fas fa-save"></i> Atualizar Produto';
+        document.querySelector('.form-section h2').innerHTML = '<i class="fas fa-edit"></i> Editar Produto';
+        
+        // Rolar para o topo do formulário
+        document.querySelector('.form-section').scrollIntoView({ behavior: 'smooth' });
+        
+        // Focar no primeiro campo
+        nomeProduto.focus();
+        
+        // NOTIFICAÇÃO REMOVIDA: Não mostrar toast ao carregar produto para edição
+        
+    } catch (error) {
+        console.error('Erro ao carregar produto para edição:', error);
+        mostrarToast('Erro ao carregar produto', 'error');
     }
 }
 
@@ -714,7 +815,14 @@ async function excluirProduto(id, nome) {
     
     try {
         await db.collection("produtos").doc(id).delete();
-        mostrarToast('Produto excluído com sucesso', 'success');
+        
+        // NOTIFICAÇÃO REMOVIDA: Não mostrar toast ao excluir produto
+        // Apenas remover da interface silenciosamente
+        
+        // Se estava editando este produto, limpar formulário
+        if (produtoEditando === id) {
+            limparFormulario();
+        }
         
         // Atualizar estatísticas da sidebar
         carregarEstatisticasSidebar();
@@ -734,12 +842,12 @@ function mostrarTodosProdutos() {
     });
     
     infoText.textContent = `Mostrando todos os ${produtosFiltrados.length} produtos`;
-    mostrarToast('Todos os produtos exibidos', 'success');
+    // NOTIFICAÇÃO REMOVIDA: Não mostrar toast ao ver todos os produtos
 }
 
 // Recarregar produtos
 function recarregarProdutos() {
-    mostrarToast('Atualizando lista de produtos...', 'success');
+    // NOTIFICAÇÃO REMOVIDA: Não mostrar toast ao recarregar
     carregarProdutos();
 }
 
@@ -821,6 +929,7 @@ window.filtrarPorStatus = filtrarPorStatus;
 window.mostrarTodosProdutos = mostrarTodosProdutos;
 window.recarregarProdutos = recarregarProdutos;
 window.alternarStatusProduto = alternarStatusProduto;
+window.editarProduto = editarProduto;
 window.excluirProduto = excluirProduto;
 window.voltarParaDashboard = voltarParaDashboard;
 window.toggleMenuMobile = toggleMenuMobile;
@@ -832,7 +941,7 @@ async function migrarProdutos() {
     }
     
     try {
-        mostrarToast('Migrando produtos...', 'info');
+        // NOTIFICAÇÃO REMOVIDA: Não mostrar toast durante migração
         
         const snapshot = await db.collection("produtos").get();
         const batch = db.batch();
