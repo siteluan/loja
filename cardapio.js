@@ -5,7 +5,7 @@ let produtos = [];
 let categorias = [];
 let carrinho = JSON.parse(localStorage.getItem('carrinho')) || [];
 let carrinhoAberto = false;
-let categoriasRenderizadas = false; // Flag para controlar se categorias já foram renderizadas
+let categoriasRenderizadas = false;
 
 // Elementos do DOM
 const produtosGrid = document.getElementById('produtosGrid');
@@ -31,7 +31,6 @@ const closeProdutoBtn = document.getElementById('closeProdutoBtn');
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Iniciando cardápio...");
     
-    // Verificar se Firebase está disponível
     if (typeof firebase === 'undefined' || !firebase.apps.length) {
         console.error("Firebase não carregado!");
         mostrarErro("Erro ao carregar o cardápio. Recarregue a página.");
@@ -127,7 +126,6 @@ function carregarProdutos() {
                 
                 snapshot.forEach((doc) => {
                     const data = doc.data();
-                    // CORREÇÃO: Verificar ambos os campos 'quantidade' e 'quantidadeEstoque'
                     const quantidadeProduto = data.quantidade || data.quantidadeEstoque || 0;
                     
                     produtos.push({
@@ -135,11 +133,11 @@ function carregarProdutos() {
                         nome: data.nome || "Produto sem nome",
                         descricao: data.descricao || "",
                         preco: data.preco || 0,
-                        quantidade: quantidadeProduto, // Usar quantidade correta
+                        quantidade: quantidadeProduto,
                         categoria: data.categoria || "outro",
                         imagemURL: data.imagemURL || "",
                         status: data.status || "off",
-                        quantidadeEstoque: quantidadeProduto // Manter compatibilidade
+                        quantidadeEstoque: quantidadeProduto
                     });
                     
                     if (data.categoria) {
@@ -223,7 +221,6 @@ function criarElementoProduto(produto) {
     const div = document.createElement('div');
     div.className = 'produto-card';
     
-    // CORREÇÃO: Usar campo 'quantidade' que agora é preenchido corretamente
     const temEstoque = produto.quantidade > 0;
     const statusTexto = temEstoque ? 'Disponível' : 'Esgotado';
     const statusClasse = temEstoque ? '' : 'out';
@@ -448,7 +445,6 @@ function adicionarAoCarrinho(produtoId) {
     const produto = produtos.find(p => p.id === produtoId);
     if (!produto) return;
     
-    // CORREÇÃO: Verificar estoque usando campo 'quantidade'
     const estoqueDisponivel = produto.quantidade || 0;
     if (estoqueDisponivel <= 0) {
         mostrarNotificacao('Produto esgotado', 'error');
@@ -458,7 +454,6 @@ function adicionarAoCarrinho(produtoId) {
     const itemExistente = carrinho.find(item => item.id === produtoId);
     
     if (itemExistente) {
-        // CORREÇÃO: Verificar se quantidade excede estoque disponível
         if (itemExistente.quantidade + 1 > estoqueDisponivel) {
             mostrarNotificacao('Estoque insuficiente', 'error');
             return;
@@ -471,7 +466,6 @@ function adicionarAoCarrinho(produtoId) {
             preco: produto.preco,
             quantidade: 1,
             imagemURL: produto.imagemURL,
-            // CORREÇÃO: Usar estoque atual do produto
             maxQuantidade: estoqueDisponivel
         });
     }
@@ -571,7 +565,6 @@ function alterarQuantidade(index, delta) {
         return;
     }
     
-    // CORREÇÃO: Verificar estoque atualizado do produto
     const produtoAtual = produtos.find(p => p.id === item.id);
     const estoqueAtual = produtoAtual ? (produtoAtual.quantidade || 0) : 0;
     
@@ -581,7 +574,6 @@ function alterarQuantidade(index, delta) {
     }
     
     item.quantidade = novaQuantidade;
-    // ATUALIZAR O MAX QUANTIDADE TAMBÉM
     item.maxQuantidade = estoqueAtual;
     salvarCarrinho();
     atualizarCarrinho();
@@ -614,11 +606,20 @@ function gerarIdPedido() {
     return `PED${timestamp.toString().slice(-6)}${random.toString().padStart(3, '0')}`;
 }
 
-// Função para finalizar pedido (agora salva no Firebase)
+// Função para finalizar pedido (SALVA NO FIREBASE COMO PENDENTE)
 async function finalizarPedido() {
     if (carrinho.length === 0) {
         mostrarNotificacao('Carrinho vazio', 'error');
         return;
+    }
+    
+    // Verificar se todos os itens ainda têm estoque
+    for (const item of carrinho) {
+        const produto = produtos.find(p => p.id === item.id);
+        if (!produto || produto.quantidade < item.quantidade) {
+            mostrarNotificacao(`${item.nome} sem estoque suficiente!`, 'error');
+            return;
+        }
     }
     
     // Gerar ID do pedido
@@ -659,14 +660,21 @@ async function finalizarPedido() {
         
         // Salvar no Firebase na coleção 'pedidos'
         await db.collection('pedidos').doc(idPedido).set(pedido);
+        console.log(`✅ Pedido ${idPedido} salvo como pendente no Firebase`);
         
-        // Atualizar estoque dos produtos - CORREÇÃO: Usar campo 'quantidade'
+        // Atualizar estoque dos produtos
+        const batch = db.batch();
+        
         for (const item of carrinho) {
-            await db.collection('produtos').doc(item.id).update({
+            const produtoRef = db.collection('produtos').doc(item.id);
+            batch.update(produtoRef, {
                 quantidade: firebase.firestore.FieldValue.increment(-item.quantidade),
-                quantidadeEstoque: firebase.firestore.FieldValue.increment(-item.quantidade) // Para compatibilidade
+                quantidadeEstoque: firebase.firestore.FieldValue.increment(-item.quantidade)
             });
         }
+        
+        await batch.commit();
+        console.log(`✅ Estoque atualizado para o pedido ${idPedido}`);
         
         // Limpar carrinho local
         carrinho = [];
@@ -678,7 +686,7 @@ async function finalizarPedido() {
         mostrarNotificacao(`Pedido ${idPedido} enviado para área de pendentes!`, 'success', 5000);
         
         // Mostrar resumo do pedido
-        alert(`✅ Pedido realizado com sucesso!\n\n📋 ID do Pedido: ${idPedido}\n💰 Total: R$ ${total.toFixed(2)}\n📅 Data: ${dataAtual}\n⏰ Hora: ${horaAtual}\n\nSeu pedido foi enviado para preparo!`);
+        alert(`✅ Pedido realizado com sucesso!\n\n📋 ID do Pedido: ${idPedido}\n💰 Total: R$ ${total.toFixed(2)}\n📅 Data: ${dataAtual}\n⏰ Hora: ${horaAtual}\n\nSeu pedido foi enviado para preparo e aparecerá na aba de pendentes!`);
         
     } catch (error) {
         console.error('Erro ao finalizar pedido:', error);
@@ -692,7 +700,6 @@ function verDetalhesProduto(produtoId) {
     const produto = produtos.find(p => p.id === produtoId);
     if (!produto) return;
     
-    // CORREÇÃO: Usar campo 'quantidade'
     const temEstoque = produto.quantidade > 0;
     const precoFormatado = produto.preco.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
     
@@ -772,47 +779,9 @@ function mostrarNotificacao(mensagem, tipo, duracao = 3000) {
     }, duracao);
 }
 
-// Função para migrar produtos existentes (opcional)
-async function migrarProdutosCardapio() {
-    if (!confirm('Deseja verificar e corrigir produtos com estoque inconsistente?')) {
-        return;
-    }
-    
-    try {
-        mostrarNotificacao('Verificando produtos...', 'info');
-        const db = firebase.firestore();
-        
-        const snapshot = await db.collection("produtos").get();
-        let corrigidos = 0;
-        
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            // Se tiver quantidadeEstoque mas não tiver quantidade, criar campo quantidade
-            if (data.quantidadeEstoque && !data.quantidade) {
-                db.collection("produtos").doc(doc.id).update({
-                    quantidade: data.quantidadeEstoque
-                });
-                corrigidos++;
-            }
-        });
-        
-        mostrarNotificacao(`${corrigidos} produtos verificados/atualizados`, 'success');
-        
-        // Recarregar produtos após migração
-        setTimeout(() => {
-            window.location.reload();
-        }, 2000);
-        
-    } catch (error) {
-        console.error('Erro na migração:', error);
-        mostrarNotificacao('Erro na verificação', 'error');
-    }
-}
-
 // Exportar funções para o escopo global
 window.adicionarAoCarrinho = adicionarAoCarrinho;
 window.verDetalhesProduto = verDetalhesProduto;
 window.alterarQuantidade = alterarQuantidade;
 window.removerDoCarrinho = removerDoCarrinho;
 window.filtrarPorCategoria = filtrarPorCategoria;
-window.migrarProdutosCardapio = migrarProdutosCardapio;

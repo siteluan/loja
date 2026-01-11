@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
         configurarListenerTempoReal();
     } else {
         console.error("Firebase não inicializado!");
-        carregarDadosExemplo();
+        mostrarNotificacao('Erro ao conectar com o servidor', 'error');
     }
     
     // Configurar eventos
@@ -39,6 +39,11 @@ function configurarListenerTempoReal() {
         pedidosListener();
     }
     
+    console.log(`🔍 Monitorando pedidos da data: ${dataFiltro}`);
+    
+    // Mostrar loading
+    mostrarLoadingTabelas();
+    
     // Configurar listener em tempo real para pedidos da data selecionada
     pedidosListener = db.collection('pedidos')
         .where('data', '==', dataFiltro)
@@ -53,11 +58,17 @@ function configurarListenerTempoReal() {
             if (querySnapshot.empty) {
                 console.log('Nenhum pedido encontrado para esta data');
             } else {
+                console.log(`📊 ${querySnapshot.size} pedidos encontrados`);
                 querySnapshot.forEach((doc) => {
                     const pedido = {
                         id: doc.id,
                         ...doc.data()
                     };
+                    
+                    // Verificar se pedido tem dados básicos
+                    if (!pedido.idPedido) pedido.idPedido = doc.id;
+                    if (!pedido.data) pedido.data = dataFiltro;
+                    if (!pedido.hora) pedido.hora = '--:--';
                     
                     // Separar por status
                     if (pedido.status === 'finalizada') {
@@ -66,6 +77,10 @@ function configurarListenerTempoReal() {
                         vendasPendentes.push(pedido);
                     } else if (pedido.status === 'cancelada') {
                         vendasCanceladas.push(pedido);
+                    } else {
+                        // Status desconhecido, considerar como pendente
+                        pedido.status = 'pendente';
+                        vendasPendentes.push(pedido);
                     }
                 });
             }
@@ -80,27 +95,39 @@ function configurarListenerTempoReal() {
         }, (error) => {
             console.error('Erro no listener:', error);
             mostrarNotificacao('Erro na conexão com o servidor', 'error');
+            
+            // Mostrar estado de erro
+            mostrarErroTabelas('Erro ao carregar dados do servidor');
         });
 }
 
 // Verificar se há novos pedidos pendentes
 function verificarNovosPedidos() {
-    // Esta função pode ser expandida para notificações mais avançadas
-    if (vendasPendentes.length > 0) {
-        // Atualizar título da aba com destaque
-        const pendentesBtn = document.querySelector('[data-aba="pendentes"]');
-        const contador = pendentesBtn.querySelector('.aba-contador');
+    const pendentesBtn = document.querySelector('[data-aba="pendentes"]');
+    const contador = pendentesBtn.querySelector('.aba-contador');
+    
+    // Adicionar animação se o contador mudou
+    if (contador.textContent !== vendasPendentes.length.toString()) {
+        contador.classList.add('pulse');
+        setTimeout(() => contador.classList.remove('pulse'), 1000);
+    }
+    
+    // Se a aba não está ativa, mostrar notificação
+    const abaAtiva = document.querySelector('.aba-conteudo.active').id;
+    if (abaAtiva !== 'aba-pendentes' && vendasPendentes.length > 0) {
+        const novaNotificacao = vendasPendentes.filter(p => {
+            // Verificar se o pedido é recente (últimos 5 minutos)
+            if (p.criadoEm) {
+                const criado = p.criadoEm.toDate ? p.criadoEm.toDate() : new Date();
+                const agora = new Date();
+                const diferencaMin = (agora - criado) / (1000 * 60);
+                return diferencaMin < 5;
+            }
+            return true;
+        }).length;
         
-        // Adicionar animação se o contador mudou
-        if (contador.textContent !== vendasPendentes.length.toString()) {
-            contador.classList.add('pulse');
-            setTimeout(() => contador.classList.remove('pulse'), 1000);
-        }
-        
-        // Se a aba não está ativa, mostrar notificação
-        const abaAtiva = document.querySelector('.aba-conteudo.active').id;
-        if (abaAtiva !== 'aba-pendentes' && vendasPendentes.length > 0) {
-            mostrarNotificacaoPedido(`${vendasPendentes.length} novo(s) pedido(s) pendente(s)!`, 'warning');
+        if (novaNotificacao > 0) {
+            mostrarNotificacaoPedido(`${novaNotificacao} novo(s) pedido(s) pendente(s)!`, 'warning');
         }
     }
 }
@@ -138,7 +165,7 @@ function mostrarNotificacaoPedido(mensagem, tipo) {
         if (notificacao.parentElement) {
             notificacao.remove();
         }
-    }, 5000);
+    }, 10000);
 }
 
 // Abrir aba de pendentes
@@ -164,9 +191,9 @@ function atualizarDataHora() {
     
     // Formatar data
     const dataFormatada = agora.toLocaleDateString('pt-BR', { 
-        weekday: 'short', 
+        weekday: 'long', 
         year: 'numeric', 
-        month: 'short', 
+        month: 'long', 
         day: 'numeric' 
     });
     document.getElementById('currentDate').textContent = dataFormatada;
@@ -177,16 +204,6 @@ function atualizarDataHora() {
         minute: '2-digit' 
     });
     document.getElementById('currentTime').textContent = horaFormatada;
-    
-    // Verificar se mudou o dia para atualizar o filtro
-    const dataAtual = getDataAtual();
-    const filtroData = document.getElementById('dataFiltro').value;
-    
-    if (dataAtual !== filtroData && filtroData === getDataAtual()) {
-        // Se o usuário está vendo "hoje" e o dia mudou, atualizar automaticamente
-        document.getElementById('dataFiltro').value = dataAtual;
-        configurarListenerTempoReal();
-    }
 }
 
 // Obter data atual
@@ -219,10 +236,6 @@ function configurarEventos() {
     
     // Filtro por data
     document.getElementById('btnFiltrar').addEventListener('click', function() {
-        const dataFiltro = document.getElementById('dataFiltro').value;
-        const categoriaFiltro = document.getElementById('categoriaFiltro').value;
-        
-        // Atualizar listener com nova data
         configurarListenerTempoReal();
     });
     
@@ -276,46 +289,6 @@ function configurarEventos() {
     });
 }
 
-// Carregar dados de exemplo (fallback)
-function carregarDadosExemplo() {
-    const dataAtual = getDataAtual();
-    
-    // Dados de exemplo
-    vendasFinalizadas = [
-        { 
-            id: "PED123456", 
-            idPedido: "PED123456", 
-            itens: [{ nome: "Hambúrguer Clássico", quantidade: 2, preco: 25.90 }],
-            subtotal: 51.80,
-            taxaEntrega: 5.00,
-            total: 56.80,
-            data: dataAtual,
-            hora: "12:30",
-            status: "finalizada"
-        }
-    ];
-    
-    vendasPendentes = [
-        { 
-            id: "PED789012", 
-            idPedido: "PED789012", 
-            itens: [{ nome: "Pizza Margherita", quantidade: 1, preco: 38.90 }],
-            subtotal: 38.90,
-            taxaEntrega: 5.00,
-            total: 43.90,
-            data: dataAtual,
-            hora: "19:30",
-            status: "pendente"
-        }
-    ];
-    
-    vendasCanceladas = [];
-    
-    atualizarTabelas();
-    atualizarContadores();
-    atualizarResumoVendas();
-}
-
 // Mostrar loading nas tabelas
 function mostrarLoadingTabelas() {
     document.getElementById('tabelaFinalizadasBody').innerHTML = `
@@ -323,7 +296,7 @@ function mostrarLoadingTabelas() {
             <td colspan="6">
                 <div class="loading-indicator">
                     <i class="fas fa-spinner fa-spin"></i>
-                    <span>Carregando...</span>
+                    <span>Carregando vendas finalizadas...</span>
                 </div>
             </td>
         </tr>
@@ -334,7 +307,7 @@ function mostrarLoadingTabelas() {
             <td colspan="7">
                 <div class="loading-indicator">
                     <i class="fas fa-spinner fa-spin"></i>
-                    <span>Carregando...</span>
+                    <span>Carregando vendas pendentes...</span>
                 </div>
             </td>
         </tr>
@@ -345,7 +318,52 @@ function mostrarLoadingTabelas() {
             <td colspan="7">
                 <div class="loading-indicator">
                     <i class="fas fa-spinner fa-spin"></i>
-                    <span>Carregando...</span>
+                    <span>Carregando vendas canceladas...</span>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+// Mostrar erro nas tabelas
+function mostrarErroTabelas(mensagem) {
+    document.getElementById('tabelaFinalizadasBody').innerHTML = `
+        <tr class="error-row">
+            <td colspan="6">
+                <div class="error-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>${mensagem}</span>
+                    <button onclick="configurarListenerTempoReal()" class="btn-reload">
+                        <i class="fas fa-redo"></i> Tentar Novamente
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+    
+    document.getElementById('tabelaPendentesBody').innerHTML = `
+        <tr class="error-row">
+            <td colspan="7">
+                <div class="error-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>${mensagem}</span>
+                    <button onclick="configurarListenerTempoReal()" class="btn-reload">
+                        <i class="fas fa-redo"></i> Tentar Novamente
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+    
+    document.getElementById('tabelaCanceladasBody').innerHTML = `
+        <tr class="error-row">
+            <td colspan="7">
+                <div class="error-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>${mensagem}</span>
+                    <button onclick="configurarListenerTempoReal()" class="btn-reload">
+                        <i class="fas fa-redo"></i> Tentar Novamente
+                    </button>
                 </div>
             </td>
         </tr>
@@ -369,9 +387,9 @@ function atualizarTabelaVendas(tipo, vendas) {
             <tr class="empty-row">
                 <td colspan="${tipo === 'pendentes' ? 7 : tipo === 'canceladas' ? 7 : 6}">
                     <div class="empty-state">
-                        <i class="fas fa-chart-line"></i>
+                        <i class="fas fa-${tipo === 'finalizadas' ? 'check-circle' : tipo === 'pendentes' ? 'clock' : 'times-circle'}"></i>
                         <h4>Sem vendas ${tipo}</h4>
-                        <p>Nenhuma venda ${tipo} encontrada</p>
+                        <p>Nenhuma venda ${tipo} encontrada para esta data</p>
                     </div>
                 </td>
             </tr>
@@ -389,12 +407,12 @@ function atualizarTabelaVendas(tipo, vendas) {
                 const isFirstItem = index === 0;
                 html += `
                     <tr>
-                        <td>${isFirstItem ? `<strong>#${pedido.idPedido}</strong>` : ''}</td>
+                        <td>${isFirstItem ? `<strong class="pedido-id">#${pedido.idPedido}</strong>` : ''}</td>
                         <td><strong>${item.nome}</strong></td>
-                        <td>${item.quantidade}</td>
+                        <td><span class="quantidade-badge">${item.quantidade}x</span></td>
                         <td>${formatarMoeda(item.preco)}</td>
-                        <td>${formatarMoeda(item.preco * item.quantidade)}</td>
-                        <td>${isFirstItem ? pedido.hora : ''}</td>
+                        <td><strong>${formatarMoeda(item.totalItem || item.preco * item.quantidade)}</strong></td>
+                        <td>${isFirstItem ? `<span class="hora-pedido">${pedido.hora}</span>` : ''}</td>
                     </tr>
                 `;
             });
@@ -403,22 +421,28 @@ function atualizarTabelaVendas(tipo, vendas) {
         vendas.forEach(pedido => {
             pedido.itens.forEach((item, index) => {
                 const isFirstItem = index === 0;
+                const horaPedido = pedido.criadoEm ? 
+                    new Date(pedido.criadoEm.seconds * 1000).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : 
+                    pedido.hora;
+                
                 html += `
-                    <tr data-id="${pedido.id}" class="pedido-pendente">
-                        <td>${isFirstItem ? `<strong>#${pedido.idPedido}</strong>` : ''}</td>
+                    <tr data-id="${pedido.id}" class="pedido-pendente ${isFirstItem ? 'first-item' : ''}">
+                        <td>${isFirstItem ? `<strong class="pedido-id">#${pedido.idPedido}</strong>` : ''}</td>
                         <td><strong>${item.nome}</strong></td>
-                        <td>${item.quantidade}</td>
+                        <td><span class="quantidade-badge">${item.quantidade}x</span></td>
                         <td>${formatarMoeda(item.preco)}</td>
-                        <td>${formatarMoeda(item.preco * item.quantidade)}</td>
-                        <td>${isFirstItem ? pedido.hora : ''}</td>
+                        <td><strong>${formatarMoeda(item.totalItem || item.preco * item.quantidade)}</strong></td>
+                        <td>${isFirstItem ? `<span class="hora-pedido">${horaPedido}</span>` : ''}</td>
                         <td>
                             ${isFirstItem ? `
-                                <button class="btn-acao btn-finalizar" onclick="finalizarVenda('${pedido.id}')">
-                                    <i class="fas fa-check"></i> Finalizar
-                                </button>
-                                <button class="btn-acao btn-cancelar" onclick="cancelarVenda('${pedido.id}')">
-                                    <i class="fas fa-times"></i> Cancelar
-                                </button>
+                                <div class="acoes-pedido">
+                                    <button class="btn-acao btn-finalizar" onclick="finalizarVenda('${pedido.id}', '${pedido.idPedido}')" title="Finalizar Pedido">
+                                        <i class="fas fa-check"></i> Finalizar
+                                    </button>
+                                    <button class="btn-acao btn-cancelar" onclick="cancelarVenda('${pedido.id}', '${pedido.idPedido}')" title="Cancelar Pedido">
+                                        <i class="fas fa-times"></i> Cancelar
+                                    </button>
+                                </div>
                             ` : ''}
                         </td>
                     </tr>
@@ -429,15 +453,17 @@ function atualizarTabelaVendas(tipo, vendas) {
         vendas.forEach(pedido => {
             pedido.itens.forEach((item, index) => {
                 const isFirstItem = index === 0;
+                const motivo = pedido.motivoCancelamento || 'Cliente solicitou';
+                
                 html += `
                     <tr>
-                        <td>${isFirstItem ? `<strong>#${pedido.idPedido}</strong>` : ''}</td>
+                        <td>${isFirstItem ? `<strong class="pedido-id">#${pedido.idPedido}</strong>` : ''}</td>
                         <td><strong>${item.nome}</strong></td>
-                        <td>${item.quantidade}</td>
+                        <td><span class="quantidade-badge">${item.quantidade}x</span></td>
                         <td>${formatarMoeda(item.preco)}</td>
-                        <td>${formatarMoeda(item.preco * item.quantidade)}</td>
-                        <td>${isFirstItem ? pedido.hora : ''}</td>
-                        <td><span class="motivo-badge">${pedido.motivoCancelamento || 'Não informado'}</span></td>
+                        <td>${formatarMoeda(item.totalItem || item.preco * item.quantidade)}</td>
+                        <td>${isFirstItem ? `<span class="hora-pedido">${pedido.hora}</span>` : ''}</td>
+                        <td><span class="motivo-badge" title="${motivo}">${motivo.length > 20 ? motivo.substring(0, 20) + '...' : motivo}</span></td>
                     </tr>
                 `;
             });
@@ -453,6 +479,14 @@ function atualizarContadores() {
     document.getElementById('contadorFinalizadas').textContent = vendasFinalizadas.length;
     document.getElementById('contadorPendentes').textContent = vendasPendentes.length;
     document.getElementById('contadorCanceladas').textContent = vendasCanceladas.length;
+    
+    // Destacar se houver pendentes
+    const pendentesContador = document.getElementById('contadorPendentes');
+    if (vendasPendentes.length > 0) {
+        pendentesContador.classList.add('has-pending');
+    } else {
+        pendentesContador.classList.remove('has-pending');
+    }
 }
 
 // Atualizar resumo de vendas
@@ -518,7 +552,7 @@ function filtrarTabela(tipo, texto) {
     const textoBusca = texto.toLowerCase().trim();
     
     linhas.forEach(linha => {
-        if (linha.classList.contains('empty-row') || linha.classList.contains('loading-row')) {
+        if (linha.classList.contains('empty-row') || linha.classList.contains('loading-row') || linha.classList.contains('error-row')) {
             return;
         }
         
@@ -532,8 +566,8 @@ function filtrarTabela(tipo, texto) {
 }
 
 // Finalizar venda pendente (Firebase)
-async function finalizarVenda(pedidoId) {
-    if (confirm('Deseja finalizar este pedido?')) {
+async function finalizarVenda(pedidoId, idPedido) {
+    if (confirm(`Deseja finalizar o pedido #${idPedido}?`)) {
         try {
             const db = firebase.firestore();
             
@@ -543,8 +577,9 @@ async function finalizarVenda(pedidoId) {
                 atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
             });
             
+            mostrarNotificacao(`Pedido #${idPedido} finalizado com sucesso!`, 'success');
+            
             // O listener em tempo real vai atualizar automaticamente
-            mostrarNotificacao('Pedido finalizado com sucesso!', 'success');
         } catch (error) {
             console.error('Erro ao finalizar pedido:', error);
             mostrarNotificacao('Erro ao finalizar pedido', 'error');
@@ -553,21 +588,41 @@ async function finalizarVenda(pedidoId) {
 }
 
 // Cancelar venda pendente (Firebase)
-async function cancelarVenda(pedidoId) {
-    const motivo = prompt('Informe o motivo do cancelamento:');
+async function cancelarVenda(pedidoId, idPedido) {
+    const motivo = prompt(`Informe o motivo do cancelamento do pedido #${idPedido}:`, 'Cliente solicitou');
     if (motivo !== null && motivo.trim() !== '') {
         try {
             const db = firebase.firestore();
             
-            // Atualizar status no Firebase
+            // Primeiro, reestocar os produtos
+            const pedidoDoc = await db.collection('pedidos').doc(pedidoId).get();
+            const pedido = pedidoDoc.data();
+            
+            if (pedido && pedido.itens) {
+                const batch = db.batch();
+                
+                // Reestocar cada item
+                for (const item of pedido.itens) {
+                    const produtoRef = db.collection('produtos').doc(item.produtoId);
+                    batch.update(produtoRef, {
+                        quantidade: firebase.firestore.FieldValue.increment(item.quantidade),
+                        quantidadeEstoque: firebase.firestore.FieldValue.increment(item.quantidade)
+                    });
+                }
+                
+                await batch.commit();
+            }
+            
+            // Atualizar status do pedido
             await db.collection('pedidos').doc(pedidoId).update({
                 status: 'cancelada',
                 motivoCancelamento: motivo.trim(),
                 atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
             });
             
+            mostrarNotificacao(`Pedido #${idPedido} cancelado com sucesso!`, 'success');
+            
             // O listener em tempo real vai atualizar automaticamente
-            mostrarNotificacao('Pedido cancelado com sucesso!', 'success');
         } catch (error) {
             console.error('Erro ao cancelar pedido:', error);
             mostrarNotificacao('Erro ao cancelar pedido', 'error');
@@ -599,7 +654,6 @@ async function finalizarTodosPendentes() {
             // Executar batch update
             await batch.commit();
             
-            // O listener em tempo real vai atualizar automaticamente
             mostrarNotificacao('Todos os pedidos foram finalizados!', 'success');
         } catch (error) {
             console.error('Erro ao finalizar todos os pedidos:', error);
@@ -640,8 +694,8 @@ function exportarDados(tipo) {
                 index === 0 ? pedido.idPedido : '',
                 item.nome,
                 item.quantidade,
-                item.preco.toFixed(2),
-                (item.preco * item.quantidade).toFixed(2),
+                item.preco.toFixed(2).replace('.', ','),
+                (item.preco * item.quantidade).toFixed(2).replace('.', ','),
                 pedido.data,
                 index === 0 ? pedido.hora : '',
                 pedido.status
@@ -651,7 +705,7 @@ function exportarDados(tipo) {
                 linha.push(pedido.motivoCancelamento || '');
             }
             
-            csv += linha.join(',') + '\n';
+            csv += linha.join(';') + '\n';
         });
     });
     
@@ -669,7 +723,7 @@ function exportarDados(tipo) {
     link.click();
     document.body.removeChild(link);
     
-    alert(`Exportado: ${dados.length} ${tipo}`);
+    mostrarNotificacao(`Exportado: ${dados.length} ${tipo}`, 'success');
 }
 
 // Mostrar notificação
@@ -678,7 +732,7 @@ function mostrarNotificacao(mensagem, tipo) {
     const notificacao = document.createElement('div');
     notificacao.className = `notificacao-flutuante ${tipo}`;
     notificacao.innerHTML = `
-        <i class="fas ${tipo === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+        <i class="fas ${tipo === 'success' ? 'fa-check-circle' : tipo === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
         <span>${mensagem}</span>
     `;
     
@@ -686,7 +740,9 @@ function mostrarNotificacao(mensagem, tipo) {
     
     // Remover após 3 segundos
     setTimeout(() => {
-        notificacao.remove();
+        if (notificacao.parentElement) {
+            notificacao.remove();
+        }
     }, 3000);
 }
 
@@ -699,38 +755,51 @@ function formatarMoeda(valor) {
     }).format(valor);
 }
 
-// Função para migrar pedidos antigos (usar apenas uma vez)
-async function migrarPedidosAntigos() {
-    try {
-        const db = firebase.firestore();
-        const querySnapshot = await db.collection('pedidos').get();
-        
-        const batch = db.batch();
-        let atualizados = 0;
-        
-        querySnapshot.forEach((doc) => {
-            const pedido = doc.data();
+// Função para criar coleção de pedidos no Firebase (use apenas uma vez)
+async function criarColecaoPedidos() {
+    if (confirm('Esta função criará a estrutura de pedidos no Firebase. Continuar?')) {
+        try {
+            const db = firebase.firestore();
             
-            // Se o pedido não tem status ou tem status diferente dos atuais
-            if (!pedido.status || !['finalizada', 'pendente', 'cancelada'].includes(pedido.status)) {
-                // Padronizar para 'finalizada' se for antigo
-                batch.update(doc.ref, {
-                    status: 'finalizada',
-                    atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                atualizados++;
-            }
-        });
-        
-        if (atualizados > 0) {
-            await batch.commit();
-            alert(`${atualizados} pedidos foram atualizados para status 'finalizada'`);
+            // Criar um pedido de exemplo
+            const pedidoExemplo = {
+                idPedido: 'PEDEXEMPLO',
+                itens: [{
+                    produtoId: 'exemplo',
+                    nome: 'Produto Exemplo',
+                    preco: 25.90,
+                    quantidade: 2,
+                    totalItem: 51.80
+                }],
+                subtotal: 51.80,
+                taxaEntrega: 5.00,
+                total: 56.80,
+                data: getDataAtual(),
+                hora: new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}),
+                status: 'pendente',
+                criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+                atualizadoEm: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            await db.collection('pedidos').doc('PEDEXEMPLO').set(pedidoExemplo);
+            
+            alert('Coleção de pedidos criada com sucesso! Apagando pedido de exemplo...');
+            
+            // Apagar o exemplo
+            await db.collection('pedidos').doc('PEDEXEMPLO').delete();
+            
+            alert('Pronto! A estrutura de pedidos está configurada.');
             configurarListenerTempoReal();
-        } else {
-            alert('Nenhum pedido precisou ser atualizado');
+            
+        } catch (error) {
+            console.error('Erro ao criar coleção:', error);
+            alert('Erro ao criar estrutura de pedidos');
         }
-    } catch (error) {
-        console.error('Erro na migração:', error);
-        alert('Erro ao migrar pedidos');
     }
 }
+
+// Adicionar funções ao escopo global
+window.criarColecaoPedidos = criarColecaoPedidos;
+window.finalizarVenda = finalizarVenda;
+window.cancelarVenda = cancelarVenda;
+window.abrirAbaPendentes = abrirAbaPendentes;
