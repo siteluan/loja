@@ -10,53 +10,83 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar Minimalista Simplificada -->
+        <!-- Sidebar -->
         <aside class="sidebar">
-            <!-- Menu Toggle para Mobile -->
-            <div class="menu-toggle" id="menuToggle">
-                <i class="fas fa-bars"></i>
-            </div>
-
-                <!-- Seção Superior - Estatísticas -->
-                <div class="stats-section">
-                    <div class="stats-container">
-                        <!-- Card de Produtos Ativos -->
-                        <div class="stat-card">
-                            <div class="stat-icon active">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="produtosAtivos">0</span>
-                                <span class="stat-label">Produtos Ativos</span>
-                            </div>
+            
+            <nav class="sidebar-menu">
+                <ul>
+                    <li>
+                        <a href="dashboard.html">
+                            <i class="fas fa-home"></i>
+                            <span>Início</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="cadprodutos.html" class="active">
+                            <i class="fas fa-box"></i>
+                            <span>Cadastrar Produtos</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="cardapio.html">
+                            <i class="fas fa-book-open"></i>
+                            <span>Cardápio Online</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="vendas-dia.html">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span>Vendas do Dia</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="settings.html">
+                            <i class="fas fa-cog"></i>
+                            <span>Configurações</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <!-- Seção de Estatísticas - NOVA POSIÇÃO -->
+            <div class="stats-section">
+                <div class="stats-container">
+                    <!-- Card de Produtos Ativos -->
+                    <div class="stat-card">
+                        <div class="stat-icon active">
+                            <i class="fas fa-check-circle"></i>
                         </div>
-                        
-                        <!-- Card de Baixo Estoque -->
-                        <div class="stat-card">
-                            <div class="stat-icon stock">
-                                <i class="fas fa-exclamation-triangle"></i>
-                            </div>
-                            <div class="stat-info">
-                                <span class="stat-value" id="produtosEstoque">0</span>
-                                <span class="stat-label">Baixo Estoque</span>
-                            </div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="produtosAtivos">0</span>
+                            <span class="stat-label">Produtos Ativos</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Card de Baixo Estoque -->
+                    <div class="stat-card">
+                        <div class="stat-icon stock">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value" id="produtosEstoque">0</span>
+                            <span class="stat-label">Baixo Estoque</span>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Seção Inferior - Botão Voltar -->
-                <div class="sidebar-footer">
-                    <button class="btn-voltar-simples" id="btnVoltarDashboard">
-                        <i class="fas fa-arrow-left"></i>
-                        <span>Voltar</span>
-                    </button>
-                </div>
+            </div>
             
+            <!-- Botão Voltar (mantido conforme solicitado) -->
+            <div class="sidebar-footer">
+                <button class="btn-voltar-simples" id="btnVoltarDashboard">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Voltar</span>
+                </button>
+            </div>
         </aside>
 
         <!-- Conteúdo Principal -->
         <main class="main-content">
-            <!-- Header -->
+            <!-- Header com Estatísticas - REMOVIDO -->
             <header class="main-header">
                 <div class="header-content">
                     <h1 class="page-title">Cadastrar Novo Produto</h1>

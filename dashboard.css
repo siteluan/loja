@@ -42,13 +42,7 @@ body {
     
 }
 
-.user-info {
-    padding: 25px 20px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
+
 
 .user-avatar i {
     font-size: 50px;
@@ -374,11 +368,6 @@ body {
     
     .logo {
         justify-content: center;
-    }
-    
-    .user-info {
-        justify-content: center;
-        padding: 25px 10px;
     }
     
     .user-avatar i {

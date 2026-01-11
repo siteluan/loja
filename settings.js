@@ -363,18 +363,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Logout
-    logoutBtn.addEventListener('click', function() {
-        if (confirm('Tem certeza que deseja sair da sua conta?')) {
-            auth.signOut().then(() => {
-                // Logout bem-sucedido
-                window.location.href = 'index.html';
-            }).catch((error) => {
-                showNotification('Erro ao fazer logout: ' + error.message, 'error');
-            });
-        }
-    });
-    
     // Menu toggle para mobile
     function setupMobileMenu() {
         const menuToggle = document.createElement('button');

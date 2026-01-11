@@ -23,11 +23,10 @@ const imagePreview = document.getElementById('imagePreview');
 const stockBar = document.getElementById('stockBar');
 const stockLevel = document.getElementById('stockLevel');
 
-// Elementos da sidebar (novos)
+// Elementos da sidebar
 const produtosAtivosElement = document.getElementById('produtosAtivos');
 const produtosEstoqueElement = document.getElementById('produtosEstoque');
 const btnVoltarDashboard = document.getElementById('btnVoltarDashboard');
-const menuToggle = document.getElementById('menuToggle');
 
 // Elementos de tipo de produto
 const tipoProdutoInput = document.getElementById('tipoProduto');
@@ -76,7 +75,6 @@ function carregarEstatisticasSidebar() {
             }
             
             // Contar produtos com baixo estoque (menos de 10 unidades)
-            // CORREÇÃO: Verificar ambos os campos para compatibilidade
             const estoque = parseInt(produto.quantidade || produto.quantidadeEstoque) || 0;
             if (estoque > 0 && estoque < 10) {
                 totalBaixoEstoque++;
@@ -97,12 +95,7 @@ function carregarEstatisticasSidebar() {
 
 // Voltar para o dashboard
 function voltarParaDashboard() {
-    window.location.href = 'dashboard.html'; // Ajuste para sua página inicial
-}
-
-// Toggle do menu mobile
-function toggleMenuMobile() {
-    document.querySelector('.sidebar').classList.toggle('active');
+    window.location.href = 'dashboard.html';
 }
 
 // ===== CONFIGURAÇÃO INICIAL =====
@@ -176,10 +169,12 @@ function setupEventListeners() {
         btnVoltarDashboard.addEventListener('click', voltarParaDashboard);
     }
     
-    // Menu toggle mobile
-    if (menuToggle) {
-        menuToggle.addEventListener('click', toggleMenuMobile);
-    }
+    // Fechar sidebar ao clicar fora (para mobile)
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 480 && !e.target.closest('.sidebar')) {
+            document.querySelector('.sidebar').classList.remove('active');
+        }
+    });
 }
 
 // Inicializar indicadores
@@ -302,14 +297,13 @@ async function cadastrarProduto(event) {
     }
     
     // Preparar dados
-    // CORREÇÃO: Salvar em ambos os campos para compatibilidade
     const produtoData = {
         nome: nomeProduto.value.trim(),
         descricao: descricaoProduto.value.trim(),
         categoria: categoriaProduto.value,
         preco: parseFloat(precoProduto.value),
-        quantidade: parseInt(quantidadeEstoque.value) || 0,  // CORREÇÃO: Adicionar campo 'quantidade'
-        quantidadeEstoque: parseInt(quantidadeEstoque.value) || 0,  // Manter campo antigo para compatibilidade
+        quantidade: parseInt(quantidadeEstoque.value) || 0,
+        quantidadeEstoque: parseInt(quantidadeEstoque.value) || 0,
         status: statusProduto.checked ? 'on' : 'off',
         tipo: tipoProdutoInput.value,
         dataCadastro: firebase.firestore.FieldValue.serverTimestamp(),
@@ -451,8 +445,6 @@ function limparFormulario() {
     
     // Focar no primeiro campo
     nomeProduto.focus();
-    
-    // NOTIFICAÇÃO REMOVIDA: Não mostrar toast ao limpar formulário
 }
 
 // ===== CARREGAMENTO DE PRODUTOS =====
@@ -473,7 +465,6 @@ function carregarProdutos() {
                     produtos.push({
                         id: doc.id,
                         ...data,
-                        // CORREÇÃO: Garantir que quantidade seja lida corretamente
                         quantidade: data.quantidade || data.quantidadeEstoque || 0,
                         dataCadastro: data.dataCadastro ? 
                             data.dataCadastro.toDate() : new Date()
@@ -597,7 +588,6 @@ function criarCardProduto(produto, index) {
     // Configurar estoque
     let estoqueClass = '';
     let estoqueIcon = 'fa-box';
-    // CORREÇÃO: Usar campo 'quantidade' se disponível, senão 'quantidadeEstoque'
     const estoqueProduto = produto.quantidade || produto.quantidadeEstoque || 0;
     let estoqueText = estoqueProduto;
     
@@ -678,7 +668,6 @@ function criarCardProduto(produto, index) {
                 <i class="fas ${produto.status === 'on' ? 'fa-toggle-off' : 'fa-toggle-on'}"></i>
                 ${produto.status === 'on' ? 'Desativar' : 'Ativar'}
             </button>
-            <!-- BOTÃO EDITAR ADICIONADO AQUI -->
             <button class="product-action edit" onclick="editarProduto('${produto.id}')">
                 <i class="fas fa-edit"></i>
                 Editar
@@ -723,9 +712,6 @@ async function alternarStatusProduto(id, estaAtivo) {
             status: novoStatus,
             dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
         });
-        
-        // NOTIFICAÇÃO REMOVIDA: Não mostrar toast ao alternar status
-        // Apenas atualizar a interface silenciosamente
         
         // Atualizar estatísticas da sidebar
         carregarEstatisticasSidebar();
@@ -799,8 +785,6 @@ async function editarProduto(id) {
         // Focar no primeiro campo
         nomeProduto.focus();
         
-        // NOTIFICAÇÃO REMOVIDA: Não mostrar toast ao carregar produto para edição
-        
     } catch (error) {
         console.error('Erro ao carregar produto para edição:', error);
         mostrarToast('Erro ao carregar produto', 'error');
@@ -815,9 +799,6 @@ async function excluirProduto(id, nome) {
     
     try {
         await db.collection("produtos").doc(id).delete();
-        
-        // NOTIFICAÇÃO REMOVIDA: Não mostrar toast ao excluir produto
-        // Apenas remover da interface silenciosamente
         
         // Se estava editando este produto, limpar formulário
         if (produtoEditando === id) {
@@ -842,12 +823,10 @@ function mostrarTodosProdutos() {
     });
     
     infoText.textContent = `Mostrando todos os ${produtosFiltrados.length} produtos`;
-    // NOTIFICAÇÃO REMOVIDA: Não mostrar toast ao ver todos os produtos
 }
 
 // Recarregar produtos
 function recarregarProdutos() {
-    // NOTIFICAÇÃO REMOVIDA: Não mostrar toast ao recarregar
     carregarProdutos();
 }
 
@@ -932,7 +911,6 @@ window.alternarStatusProduto = alternarStatusProduto;
 window.editarProduto = editarProduto;
 window.excluirProduto = excluirProduto;
 window.voltarParaDashboard = voltarParaDashboard;
-window.toggleMenuMobile = toggleMenuMobile;
 
 // Função para migrar produtos antigos (opcional)
 async function migrarProdutos() {
@@ -941,8 +919,6 @@ async function migrarProdutos() {
     }
     
     try {
-        // NOTIFICAÇÃO REMOVIDA: Não mostrar toast durante migração
-        
         const snapshot = await db.collection("produtos").get();
         const batch = db.batch();
         let migrados = 0;
