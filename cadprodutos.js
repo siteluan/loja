@@ -1,4 +1,5 @@
 // ===== SISTEMA DE CADASTRO DE PRODUTOS =====
+// VERSÃO SUPABASE
 
 // Elementos DOM
 const produtoForm = document.getElementById('produtoForm');
@@ -46,31 +47,74 @@ let produtosFiltrados = [];
 let isSubmitting = false;
 let currentFilter = 'todos';
 let produtoEditando = null; // Armazena o ID do produto em edição
+let unsubscribeProdutos = null; // Para unsubscribe do realtime
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Sistema de Produtos inicializado');
+    console.log('🚀 Sistema de Produtos inicializado (Supabase)');
     
-    inicializarFirebase();
+    inicializarSupabase();
     setupEventListeners();
     inicializarIndicadores();
     carregarProdutos();
     carregarEstatisticasSidebar();
 });
 
+// ===== INICIALIZAÇÃO SUPABASE =====
+
+// Inicializar Supabase
+function inicializarSupabase() {
+    try {
+        console.log('✅ Supabase configurado');
+        testarConexaoSupabase();
+    } catch (error) {
+        console.error('❌ Erro no Supabase:', error);
+        mostrarToast('Erro na conexão com o banco de dados', 'error');
+    }
+}
+
+// Testar conexão Supabase
+async function testarConexaoSupabase() {
+    try {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            throw new Error('Cliente Supabase não encontrado');
+        }
+        
+        const { data, error } = await supabase
+            .from('produtos')
+            .select('id')
+            .limit(1);
+            
+        if (error) throw error;
+        console.log('✅ Conexão Supabase estabelecida');
+    } catch (error) {
+        console.error('❌ Falha na conexão Supabase:', error);
+        mostrarToast('Erro ao conectar com o banco de dados', 'error');
+    }
+}
+
 // ===== SIDEBAR E NAVEGAÇÃO =====
 
 // Carregar estatísticas da sidebar
-function carregarEstatisticasSidebar() {
-    db.collection('produtos').onSnapshot((snapshot) => {
+async function carregarEstatisticasSidebar() {
+    try {
+        const supabase = getSupabaseClient();
+        if (!supabase) return;
+
+        // Buscar todos os produtos
+        const { data: produtosData, error } = await supabase
+            .from('produtos')
+            .select('*');
+            
+        if (error) throw error;
+        
         let totalAtivos = 0;
         let totalBaixoEstoque = 0;
         
-        snapshot.forEach((doc) => {
-            const produto = doc.data();
-            
+        produtosData.forEach((produto) => {
             // Contar produtos ativos
-            if (produto.status === true || produto.status === 'on') {
+            if (produto.status === true || produto.status === 'on' || produto.status === 'ativo') {
                 totalAtivos++;
             }
             
@@ -88,9 +132,9 @@ function carregarEstatisticasSidebar() {
         if (produtosEstoqueElement) {
             produtosEstoqueElement.textContent = totalBaixoEstoque;
         }
-    }, (error) => {
+    } catch (error) {
         console.error('Erro ao carregar estatísticas:', error);
-    });
+    }
 }
 
 // Voltar para o dashboard
@@ -99,29 +143,6 @@ function voltarParaDashboard() {
 }
 
 // ===== CONFIGURAÇÃO INICIAL =====
-
-// Inicializar Firebase
-function inicializarFirebase() {
-    try {
-        console.log('✅ Firebase configurado');
-        
-        // Testar conexão
-        testarConexaoFirebase();
-    } catch (error) {
-        console.error('❌ Erro no Firebase:', error);
-        mostrarToast('Erro na conexão com o banco de dados', 'error');
-    }
-}
-
-// Testar conexão Firebase
-async function testarConexaoFirebase() {
-    try {
-        await db.collection("teste").limit(1).get();
-        console.log('✅ Conexão Firebase estabelecida');
-    } catch (error) {
-        console.error('❌ Falha na conexão Firebase');
-    }
-}
 
 // Configurar listeners de eventos
 function setupEventListeners() {
@@ -168,13 +189,6 @@ function setupEventListeners() {
     if (btnVoltarDashboard) {
         btnVoltarDashboard.addEventListener('click', voltarParaDashboard);
     }
-    
-    // Fechar sidebar ao clicar fora (para mobile)
-    document.addEventListener('click', (e) => {
-        if (window.innerWidth <= 480 && !e.target.closest('.sidebar')) {
-            document.querySelector('.sidebar').classList.remove('active');
-        }
-    });
 }
 
 // Inicializar indicadores
@@ -197,6 +211,9 @@ function selecionarTipo(tipo) {
     
     tipoProdutoInput.value = tipo;
     
+    // Mostrar/ocultar campos baseado no tipo
+    alternarCamposPorTipo(tipo);
+    
     // Mostrar/ocultar categorias para adicionais
     if (tipo === 'adicional') {
         categoriasAdicionaisContainer.style.display = 'block';
@@ -205,6 +222,37 @@ function selecionarTipo(tipo) {
         }, 10);
     } else {
         categoriasAdicionaisContainer.style.display = 'none';
+    }
+}
+
+// Alternar campos baseado no tipo de produto
+function alternarCamposPorTipo(tipo) {
+    const descricaoContainer = document.getElementById('descricaoContainer');
+    const estoqueContainer = document.getElementById('estoqueContainer');
+    const imagemContainer = document.getElementById('imagemContainer');
+    const categoriaContainer = document.getElementById('categoriaContainer');
+    const previewContainer = document.getElementById('previewContainer');
+    
+    if (tipo === 'adicional') {
+        // Esconder campos não necessários para adicionais
+        if (descricaoContainer) descricaoContainer.style.display = 'none';
+        if (estoqueContainer) estoqueContainer.style.display = 'none';
+        if (imagemContainer) imagemContainer.style.display = 'none';
+        if (categoriaContainer) categoriaContainer.style.display = 'none';
+        if (previewContainer) previewContainer.style.display = 'none';
+        
+        // Limpar valores dos campos ocultos
+        descricaoProduto.value = '';
+        quantidadeEstoque.value = '0';
+        imagemURL.value = '';
+        
+    } else {
+        // Mostrar todos os campos para produtos normais
+        if (descricaoContainer) descricaoContainer.style.display = 'block';
+        if (estoqueContainer) estoqueContainer.style.display = 'block';
+        if (imagemContainer) imagemContainer.style.display = 'block';
+        if (categoriaContainer) categoriaContainer.style.display = 'block';
+        if (previewContainer) previewContainer.style.display = 'block';
     }
 }
 
@@ -282,95 +330,7 @@ function handleImageError() {
     `;
 }
 
-// ===== CADASTRO DE PRODUTOS =====
-
-async function cadastrarProduto(event) {
-    event.preventDefault();
-    
-    if (isSubmitting) return;
-    isSubmitting = true;
-    
-    // Validar dados
-    if (!validarFormulario()) {
-        isSubmitting = false;
-        return;
-    }
-    
-    // Preparar dados
-    const produtoData = {
-        nome: nomeProduto.value.trim(),
-        descricao: descricaoProduto.value.trim(),
-        categoria: categoriaProduto.value,
-        preco: parseFloat(precoProduto.value),
-        quantidade: parseInt(quantidadeEstoque.value) || 0,
-        quantidadeEstoque: parseInt(quantidadeEstoque.value) || 0,
-        status: statusProduto.checked ? 'on' : 'off',
-        tipo: tipoProdutoInput.value,
-        dataCadastro: firebase.firestore.FieldValue.serverTimestamp(),
-        dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    
-    // Adicionar URL da imagem se existir
-    const urlImagem = imagemURL.value.trim();
-    if (urlImagem && isValidURL(urlImagem)) {
-        produtoData.imagemURL = urlImagem;
-    }
-    
-    // Adicionar categorias para adicionais
-    if (produtoData.tipo === 'adicional') {
-        const categorias = [];
-        document.querySelectorAll('.category-chip input:checked').forEach(cb => {
-            categorias.push(cb.value);
-        });
-        produtoData.categoriasAdicionais = categorias;
-    }
-    
-    try {
-        // Mostrar loading
-        if (produtoEditando) {
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Atualizando...';
-        } else {
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cadastrando...';
-        }
-        submitBtn.disabled = true;
-        
-        // Se estiver editando, atualizar produto existente
-        if (produtoEditando) {
-            await db.collection("produtos").doc(produtoEditando).update({
-                ...produtoData,
-                dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            mostrarToast('Produto atualizado com sucesso!', 'success');
-            produtoEditando = null;
-            submitBtn.innerHTML = '<i class="fas fa-check"></i> Cadastrar Produto';
-        } else {
-            // Senão, criar novo produto
-            await db.collection("produtos").add(produtoData);
-            mostrarToast('Produto cadastrado com sucesso!', 'success');
-        }
-        
-        // Limpar formulário
-        setTimeout(limparFormulario, 500);
-        
-        // Recarregar produtos
-        setTimeout(carregarProdutos, 1000);
-        
-        // Atualizar estatísticas da sidebar
-        carregarEstatisticasSidebar();
-        
-    } catch (error) {
-        console.error('Erro ao cadastrar:', error);
-        mostrarToast('Erro ao salvar produto', 'error');
-    } finally {
-        // Restaurar botão
-        setTimeout(() => {
-            submitBtn.innerHTML = '<i class="fas fa-check"></i> Cadastrar Produto';
-            submitBtn.disabled = false;
-            isSubmitting = false;
-        }, 1000);
-    }
-}
+// ===== VALIDAÇÃO DE FORMULÁRIO =====
 
 // Validar formulário
 function validarFormulario() {
@@ -389,12 +349,14 @@ function validarFormulario() {
         return false;
     }
     
-    // Validar URL da imagem
-    const urlImagem = imagemURL.value.trim();
-    if (urlImagem && !isValidURL(urlImagem)) {
-        mostrarToast('URL da imagem inválida', 'error');
-        imagemURL.focus();
-        return false;
+    // Validar URL da imagem (apenas para produtos normais)
+    if (tipoProdutoInput.value !== 'adicional') {
+        const urlImagem = imagemURL.value.trim();
+        if (urlImagem && !isValidURL(urlImagem)) {
+            mostrarToast('URL da imagem inválida', 'error');
+            imagemURL.focus();
+            return false;
+        }
     }
     
     // Validar adicionais
@@ -407,6 +369,110 @@ function validarFormulario() {
     }
     
     return true;
+}
+
+// ===== CADASTRO DE PRODUTOS (SUPABASE) =====
+
+async function cadastrarProduto(event) {
+    event.preventDefault();
+    
+    if (isSubmitting) return;
+    isSubmitting = true;
+    
+    // Validar dados
+    if (!validarFormulario()) {
+        isSubmitting = false;
+        return;
+    }
+    
+    // Preparar dados básicos
+    const produtoData = {
+        nome: nomeProduto.value.trim(),
+        preco: parseFloat(precoProduto.value),
+        status: statusProduto.checked ? 'on' : 'off',
+        tipo: tipoProdutoInput.value
+    };
+    
+    // Adicionar dados específicos baseado no tipo
+    if (tipoProdutoInput.value === 'adicional') {
+        // Para adicionais: sem descrição, estoque, imagem, categoria principal
+        const categorias = [];
+        document.querySelectorAll('.category-chip input:checked').forEach(cb => {
+            categorias.push(cb.value);
+        });
+        produtoData.categorias_adicionais = categorias;
+        
+    } else {
+        // Para produtos normais: todos os campos
+        produtoData.descricao = descricaoProduto.value.trim();
+        produtoData.categoria = categoriaProduto.value;
+        produtoData.quantidade = parseInt(quantidadeEstoque.value) || 0;
+        produtoData.quantidade_estoque = parseInt(quantidadeEstoque.value) || 0;
+        
+        // URL da imagem (opcional)
+        const urlImagem = imagemURL.value.trim();
+        if (urlImagem && isValidURL(urlImagem)) {
+            produtoData.imagem_url = urlImagem;
+        }
+    }
+    
+    try {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            throw new Error('Cliente Supabase não disponível');
+        }
+        
+        // Mostrar loading
+        if (produtoEditando) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Atualizando...';
+        } else {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cadastrando...';
+        }
+        submitBtn.disabled = true;
+        
+        // Se estiver editando, atualizar produto existente
+        if (produtoEditando) {
+            const { error } = await supabase
+                .from('produtos')
+                .update(produtoData)
+                .eq('id', produtoEditando);
+            
+            if (error) throw error;
+            
+            mostrarToast('Produto atualizado com sucesso!', 'success');
+            produtoEditando = null;
+            submitBtn.innerHTML = '<i class="fas fa-check"></i> Cadastrar Produto';
+        } else {
+            // Senão, criar novo produto
+            const { error } = await supabase
+                .from('produtos')
+                .insert([produtoData]);
+            
+            if (error) throw error;
+            
+            mostrarToast('Produto cadastrado com sucesso!', 'success');
+        }
+        
+        // Limpar formulário
+        setTimeout(limparFormulario, 500);
+        
+        // Recarregar produtos
+        setTimeout(carregarProdutos, 1000);
+        
+        // Atualizar estatísticas da sidebar
+        carregarEstatisticasSidebar();
+        
+    } catch (error) {
+        console.error('Erro ao cadastrar:', error);
+        mostrarToast('Erro ao salvar produto: ' + error.message, 'error');
+    } finally {
+        // Restaurar botão
+        setTimeout(() => {
+            submitBtn.innerHTML = '<i class="fas fa-check"></i> Cadastrar Produto';
+            submitBtn.disabled = false;
+            isSubmitting = false;
+        }, 1000);
+    }
 }
 
 // Limpar formulário
@@ -428,6 +494,9 @@ function limparFormulario() {
         cb.checked = false;
     });
     
+    // Mostrar todos os campos
+    alternarCamposPorTipo('normal');
+    
     // Resetar preview
     atualizarPreviewImagem();
     
@@ -447,52 +516,95 @@ function limparFormulario() {
     nomeProduto.focus();
 }
 
-// ===== CARREGAMENTO DE PRODUTOS =====
+// ===== CARREGAMENTO DE PRODUTOS (SUPABASE) =====
 
-function carregarProdutos() {
+async function carregarProdutos() {
     if (!produtosLista) return;
     
     mostrarLoading(true);
     
-    const unsubscribe = db.collection("produtos")
-        .orderBy("dataCadastro", "desc")
-        .onSnapshot({
-            next: (snapshot) => {
-                produtos = [];
-                
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    produtos.push({
-                        id: doc.id,
-                        ...data,
-                        quantidade: data.quantidade || data.quantidadeEstoque || 0,
-                        dataCadastro: data.dataCadastro ? 
-                            data.dataCadastro.toDate() : new Date()
-                    });
-                });
-                
-                console.log(`📦 ${produtos.length} produtos carregados`);
-                
-                filtrarProdutos();
-                mostrarLoading(false);
-                
-                // Atualizar interface
-                if (produtos.length === 0) {
-                    mostrarEmptyState(true);
-                } else {
-                    mostrarEmptyState(false);
-                }
-            },
-            error: (error) => {
-                console.error('Erro ao carregar produtos:', error);
-                mostrarToast('Erro ao carregar produtos', 'error');
-                mostrarLoading(false);
-                mostrarEmptyState(true);
+    try {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            throw new Error('Cliente Supabase não disponível');
+        }
+        
+        // Verificar se unsubscribeProdutos é uma função antes de chamar
+        if (unsubscribeProdutos && typeof unsubscribeProdutos === 'function') {
+            try {
+                unsubscribeProdutos();
+            } catch (e) {
+                console.warn('Erro ao desinscrever subscription:', e);
             }
-        });
-    
-    // Limpar listener ao sair
-    window.addEventListener('beforeunload', () => unsubscribe());
+            unsubscribeProdutos = null;
+        }
+        
+        // Buscar produtos
+        const { data, error } = await supabase
+            .from('produtos')
+            .select('*')
+            .order('data_cadastro', { ascending: false });
+        
+        if (error) throw error;
+        
+        produtos = data.map(produto => ({
+            ...produto,
+            quantidade: produto.quantidade || 0,
+            quantidadeEstoque: produto.quantidade_estoque || 0,
+            imagemURL: produto.imagem_url,
+            categoriasAdicionais: produto.categorias_adicionais,
+            dataCadastro: produto.data_cadastro || new Date()
+        }));
+        
+        console.log(`📦 ${produtos.length} produtos carregados do Supabase`);
+        
+        // Configurar realtime subscription (opcional - pode remover se não quiser)
+        try {
+            const channel = supabase
+                .channel('produtos-realtime')
+                .on('postgres_changes', 
+                    { 
+                        event: '*', 
+                        schema: 'public', 
+                        table: 'produtos' 
+                    }, 
+                    (payload) => {
+                        console.log('Mudança realtime detectada:', payload);
+                        // Recarrega os produtos quando houver mudanças
+                        carregarProdutos();
+                        carregarEstatisticasSidebar();
+                    }
+                )
+                .subscribe((status) => {
+                    console.log('Status da subscription:', status);
+                });
+            
+            // Armazenar a função de unsubscribe corretamente
+            unsubscribeProdutos = () => {
+                supabase.removeChannel(channel);
+            };
+            
+        } catch (realtimeError) {
+            console.warn('Não foi possível configurar realtime:', realtimeError);
+            unsubscribeProdutos = null;
+        }
+        
+        filtrarProdutos();
+        mostrarLoading(false);
+        
+        // Atualizar interface
+        if (produtos.length === 0) {
+            mostrarEmptyState(true);
+        } else {
+            mostrarEmptyState(false);
+        }
+        
+    } catch (error) {
+        console.error('Erro ao carregar produtos:', error);
+        mostrarToast('Erro ao carregar produtos: ' + error.message, 'error');
+        mostrarLoading(false);
+        mostrarEmptyState(true);
+    }
 }
 
 // Mostrar/ocultar loading
@@ -521,8 +633,10 @@ function filtrarPorStatus(status) {
     // Atualizar botões
     document.querySelectorAll('.filter-tag').forEach(tag => {
         tag.classList.remove('active');
+        if (tag.dataset.filter === status) {
+            tag.classList.add('active');
+        }
     });
-    event.target.classList.add('active');
     
     filtrarProdutos();
 }
@@ -539,8 +653,8 @@ function filtrarProdutos() {
         
         // Filtro por status
         const matchesStatus = currentFilter === 'todos' ||
-            (currentFilter === 'on' && produto.status === 'on') ||
-            (currentFilter === 'off' && produto.status === 'off');
+            (currentFilter === 'on' && (produto.status === 'on' || produto.status === 'ativo' || produto.status === true)) ||
+            (currentFilter === 'off' && (produto.status === 'off' || produto.status === 'inativo' || produto.status === false));
         
         return matchesSearch && matchesStatus;
     });
@@ -569,7 +683,7 @@ function renderizarProdutos() {
     }
     
     // Ordenar por data (mais recentes primeiro)
-    produtosFiltrados.sort((a, b) => b.dataCadastro - a.dataCadastro);
+    produtosFiltrados.sort((a, b) => new Date(b.dataCadastro) - new Date(a.dataCadastro));
     
     // Limitar a 6 produtos por padrão
     const produtosParaExibir = produtosFiltrados.slice(0, 6);
@@ -582,10 +696,10 @@ function renderizarProdutos() {
 // Criar card de produto
 function criarCardProduto(produto, index) {
     const card = document.createElement('div');
-    card.className = `product-card ${produto.status === 'off' ? 'inactive' : ''}`;
+    card.className = `product-card ${(produto.status === 'off' || produto.status === 'inativo' || produto.status === false) ? 'inactive' : ''}`;
     card.style.animationDelay = `${index * 0.1}s`;
     
-    // Configurar estoque
+    // Configurar estoque (apenas para produtos normais)
     let estoqueClass = '';
     let estoqueIcon = 'fa-box';
     const estoqueProduto = produto.quantidade || produto.quantidadeEstoque || 0;
@@ -617,15 +731,17 @@ function criarCardProduto(produto, index) {
     // Data formatada
     const dataFormatada = formatarData(produto.dataCadastro);
     
+    // Badge para adicionais
+    const badgeAdicional = produto.tipo === 'adicional' ? 
+        '<div class="badge-adicional" title="Produto Adicional"><i class="fas fa-plus"></i></div>' : '';
+    
     card.innerHTML = `
-        ${produto.tipo === 'adicional' ? 
-            '<div class="badge-additional" title="Produto Adicional"><i class="fas fa-plus"></i></div>' : ''
-        }
+        ${badgeAdicional}
         
         <div class="product-card-header">
             <div class="product-image">
-                ${produto.imagemURL ? 
-                    `<img src="${produto.imagemURL}" alt="${produto.nome}" onerror="handleImageError.call(this)">` :
+                ${produto.imagemURL || produto.imagem_url ? 
+                    `<img src="${produto.imagemURL || produto.imagem_url}" alt="${produto.nome}" onerror="handleImageError.call(this)">` :
                     `<i class="fas fa-box"></i>`
                 }
             </div>
@@ -636,8 +752,8 @@ function criarCardProduto(produto, index) {
                         <i class="fas fa-tag"></i>
                         ${categoriaTexto}
                     </span>
-                    <span class="product-status ${produto.status === 'on' ? 'status-active' : 'status-inactive'}">
-                        ${produto.status === 'on' ? 'ATIVO' : 'INATIVO'}
+                    <span class="product-status ${(produto.status === 'on' || produto.status === 'ativo' || produto.status === true) ? 'status-active' : 'status-inactive'}">
+                        ${(produto.status === 'on' || produto.status === 'ativo' || produto.status === true) ? 'ATIVO' : 'INATIVO'}
                     </span>
                 </div>
             </div>
@@ -646,7 +762,8 @@ function criarCardProduto(produto, index) {
         <div class="product-card-body">
             ${produto.descricao ? 
                 `<p class="product-description" title="${produto.descricao}">${produto.descricao}</p>` :
-                '<p class="product-description" style="color: var(--text-muted); font-style: italic;">Sem descrição</p>'
+                '<p class="product-description" style="color: var(--text-muted); font-style: italic;">' + 
+                (produto.tipo === 'adicional' ? 'Produto adicional' : 'Sem descrição') + '</p>'
             }
             
             <div class="product-stats">
@@ -655,18 +772,21 @@ function criarCardProduto(produto, index) {
                     <span class="stat-value price">R$ ${precoFormatado}</span>
                 </div>
                 <div class="product-stat">
-                    <span class="stat-label">Estoque</span>
-                    <span class="stat-value stock ${estoqueClass}">
-                        <i class="fas ${estoqueIcon}"></i> ${estoqueText}
+                    <span class="stat-label">${produto.tipo === 'adicional' ? 'Tipo' : 'Estoque'}</span>
+                    <span class="stat-value ${produto.tipo === 'adicional' ? '' : 'stock ' + estoqueClass}">
+                        ${produto.tipo === 'adicional' ? 
+                            'Adicional' : 
+                            `<i class="fas ${estoqueIcon}"></i> ${estoqueText}`
+                        }
                     </span>
                 </div>
             </div>
         </div>
         
         <div class="product-card-footer">
-            <button class="product-action toggle" onclick="alternarStatusProduto('${produto.id}', ${produto.status === 'on'})">
-                <i class="fas ${produto.status === 'on' ? 'fa-toggle-off' : 'fa-toggle-on'}"></i>
-                ${produto.status === 'on' ? 'Desativar' : 'Ativar'}
+            <button class="product-action toggle" onclick="alternarStatusProduto('${produto.id}', ${(produto.status === 'on' || produto.status === 'ativo' || produto.status === true)})">
+                <i class="fas ${(produto.status === 'on' || produto.status === 'ativo' || produto.status === true) ? 'fa-toggle-off' : 'fa-toggle-on'}"></i>
+                ${(produto.status === 'on' || produto.status === 'ativo' || produto.status === true) ? 'Desativar' : 'Ativar'}
             </button>
             <button class="product-action edit" onclick="editarProduto('${produto.id}')">
                 <i class="fas fa-edit"></i>
@@ -702,73 +822,105 @@ function atualizarEstatisticasExibidas() {
     }
 }
 
-// ===== OPERAÇÕES CRUD =====
+// ===== OPERAÇÕES CRUD (SUPABASE) =====
 
 // Alternar status do produto
 async function alternarStatusProduto(id, estaAtivo) {
     try {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            throw new Error('Cliente Supabase não disponível');
+        }
+        
         const novoStatus = estaAtivo ? 'off' : 'on';
-        await db.collection("produtos").doc(id).update({
-            status: novoStatus,
-            dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        const { error } = await supabase
+            .from('produtos')
+            .update({ 
+                status: novoStatus,
+                data_atualizacao: new Date().toISOString()
+            })
+            .eq('id', id);
+        
+        if (error) throw error;
         
         // Atualizar estatísticas da sidebar
         carregarEstatisticasSidebar();
+        
     } catch (error) {
         console.error('Erro ao alternar status:', error);
-        mostrarToast('Erro ao alterar status do produto', 'error');
+        mostrarToast('Erro ao alterar status do produto: ' + error.message, 'error');
     }
 }
 
 // Editar produto
 async function editarProduto(id) {
     try {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            throw new Error('Cliente Supabase não disponível');
+        }
+        
         // Buscar dados do produto
-        const doc = await db.collection("produtos").doc(id).get();
-        if (!doc.exists) {
+        const { data, error } = await supabase
+            .from('produtos')
+            .select('*')
+            .eq('id', id)
+            .single();
+        
+        if (error) throw error;
+        
+        if (!data) {
             mostrarToast('Produto não encontrado', 'error');
             return;
         }
         
-        const produto = doc.data();
+        const produto = data;
         
         // Preencher formulário com dados do produto
         nomeProduto.value = produto.nome || '';
-        descricaoProduto.value = produto.descricao || '';
-        categoriaProduto.value = produto.categoria || 'outro';
-        precoProduto.value = produto.preco || 0;
         
-        // Usar quantidade se existir, senão usar quantidadeEstoque
-        quantidadeEstoque.value = produto.quantidade || produto.quantidadeEstoque || 0;
-        
-        statusProduto.checked = produto.status === 'on';
-        atualizarStatusTexto();
-        
-        tipoProdutoInput.value = produto.tipo || 'normal';
+        // Configurar tipo
+        const tipoProduto = produto.tipo || 'normal';
+        tipoProdutoInput.value = tipoProduto;
         
         // Selecionar tipo correto
         document.querySelectorAll('.type-btn').forEach(btn => {
             btn.classList.remove('active');
-            if (btn.dataset.type === (produto.tipo || 'normal')) {
+            if (btn.dataset.type === tipoProduto) {
                 btn.classList.add('active');
             }
         });
         
-        // Mostrar/ocultar categorias para adicionais
-        if (produto.tipo === 'adicional') {
+        // Mostrar/ocultar campos baseado no tipo
+        alternarCamposPorTipo(tipoProduto);
+        
+        // Preencher dados específicos baseado no tipo
+        if (tipoProduto === 'adicional') {
+            // Para adicionais
             categoriasAdicionaisContainer.style.display = 'block';
             
             // Marcar checkboxes de categorias
             document.querySelectorAll('.category-chip input').forEach(cb => {
-                cb.checked = produto.categoriasAdicionais && 
-                            produto.categoriasAdicionais.includes(cb.value);
+                cb.checked = produto.categorias_adicionais && 
+                            produto.categorias_adicionais.includes(cb.value);
             });
+            
         } else {
-            categoriasAdicionaisContainer.style.display = 'none';
+            // Para produtos normais
+            descricaoProduto.value = produto.descricao || '';
+            categoriaProduto.value = produto.categoria || 'outro';
+            quantidadeEstoque.value = produto.quantidade || produto.quantidade_estoque || 0;
+            imagemURL.value = produto.imagem_url || produto.imagemURL || '';
         }
         
-        imagemURL.value = produto.imagemURL || '';
+        // Preço sempre tem para ambos os tipos
+        precoProduto.value = produto.preco || 0;
+        
+        // Ajustar status (pode ser boolean, string, etc)
+        const isAtivo = produto.status === 'on' || produto.status === 'ativo' || produto.status === true;
+        statusProduto.checked = isAtivo;
+        atualizarStatusTexto();
+        
         atualizarPreviewImagem();
         atualizarIndicadorEstoque();
         
@@ -787,7 +939,7 @@ async function editarProduto(id) {
         
     } catch (error) {
         console.error('Erro ao carregar produto para edição:', error);
-        mostrarToast('Erro ao carregar produto', 'error');
+        mostrarToast('Erro ao carregar produto: ' + error.message, 'error');
     }
 }
 
@@ -798,7 +950,17 @@ async function excluirProduto(id, nome) {
     }
     
     try {
-        await db.collection("produtos").doc(id).delete();
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            throw new Error('Cliente Supabase não disponível');
+        }
+        
+        const { error } = await supabase
+            .from('produtos')
+            .delete()
+            .eq('id', id);
+        
+        if (error) throw error;
         
         // Se estava editando este produto, limpar formulário
         if (produtoEditando === id) {
@@ -807,9 +969,10 @@ async function excluirProduto(id, nome) {
         
         // Atualizar estatísticas da sidebar
         carregarEstatisticasSidebar();
+        
     } catch (error) {
         console.error('Erro ao excluir produto:', error);
-        mostrarToast('Erro ao excluir produto', 'error');
+        mostrarToast('Erro ao excluir produto: ' + error.message, 'error');
     }
 }
 
@@ -828,14 +991,23 @@ function mostrarTodosProdutos() {
 // Recarregar produtos
 function recarregarProdutos() {
     carregarProdutos();
+    carregarEstatisticasSidebar();
 }
 
 // ===== UTILITÁRIOS =====
 
 // Formatar data
 function formatarData(data) {
+    if (!data) return 'Data desconhecida';
+    
     const agora = new Date();
     const dataProduto = new Date(data);
+    
+    // Verificar se a data é válida
+    if (isNaN(dataProduto.getTime())) {
+        return 'Data inválida';
+    }
+    
     const diffMs = agora - dataProduto;
     const diffMinutos = Math.floor(diffMs / 60000);
     const diffHoras = Math.floor(diffMs / 3600000);
@@ -911,41 +1083,3 @@ window.alternarStatusProduto = alternarStatusProduto;
 window.editarProduto = editarProduto;
 window.excluirProduto = excluirProduto;
 window.voltarParaDashboard = voltarParaDashboard;
-
-// Função para migrar produtos antigos (opcional)
-async function migrarProdutos() {
-    if (!confirm('Deseja migrar produtos antigos para usar o novo campo "quantidade"?')) {
-        return;
-    }
-    
-    try {
-        const snapshot = await db.collection("produtos").get();
-        const batch = db.batch();
-        let migrados = 0;
-        
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.quantidadeEstoque && !data.quantidade) {
-                const ref = db.collection("produtos").doc(doc.id);
-                batch.update(ref, {
-                    quantidade: data.quantidadeEstoque,
-                    dataAtualizacao: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                migrados++;
-            }
-        });
-        
-        await batch.commit();
-        mostrarToast(`${migrados} produtos migrados com sucesso!`, 'success');
-        
-        // Recarregar produtos
-        setTimeout(carregarProdutos, 1000);
-        
-    } catch (error) {
-        console.error('Erro na migração:', error);
-        mostrarToast('Erro na migração', 'error');
-    }
-}
-
-// Tornar função de migração disponível globalmente
-window.migrarProdutos = migrarProdutos;

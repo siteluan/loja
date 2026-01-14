@@ -509,24 +509,6 @@ input:checked + .toggle-slider:before {
     color: #666;
 }
 
-/* Seção de perigo */
-.danger-zone {
-    background-color: #fff5f5;
-    border: 1px solid #ffcdd2;
-    border-radius: 12px;
-    padding: 30px;
-    margin-top: 40px;
-}
-
-.danger-zone .card-header {
-    border-bottom: 1px solid #ffcdd2;
-}
-
-.danger-zone .card-header i {
-    color: var(--danger-color);
-    background-color: rgba(244, 67, 54, 0.1);
-}
-
 .danger-actions {
     display: flex;
     flex-wrap: wrap;

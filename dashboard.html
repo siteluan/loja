@@ -11,7 +11,6 @@
     <div class="dashboard-container">
         <!-- Sidebar -->
         <aside class="sidebar">
-            
             <nav class="sidebar-menu">
                 <ul>
                     <li>
@@ -21,14 +20,12 @@
                         </a>
                     </li>
                     <li>
-                        <!-- Alteração 1: Link direto para cadprodutos.html -->
                         <a href="cadprodutos.html">
                             <i class="fas fa-box"></i>
                             <span>Cadastrar Produtos</span>
                         </a>
                     </li>
                     <li>
-                        <!-- Alteração 2: Link direto para cardapio.html -->
                         <a href="cardapio.html">
                             <i class="fas fa-book-open"></i>
                             <span>Cardápio Online</span>
@@ -66,6 +63,10 @@
                     <p id="pageSubtitle">Gerencie seu negócio de forma simples e eficiente</p>
                 </div>
                 <div class="header-right">
+                    <div class="user-info" id="userInfo">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="userEmailDisplay">Carregando...</span>
+                    </div>
                     <div class="date-time">
                         <span id="currentDate"></span>
                         <span id="currentTime"></span>
@@ -79,7 +80,7 @@
                     <div class="welcome-card">
                         <div class="welcome-content">
                             <h2>Bem-vindo ao seu Painel!</h2>
-                            <p>Selecione uma das opções abaixo para gerenciar seu negócio:</p>
+                            <p id="welcomeMessage">Carregando informações...</p>
                         </div>
                         <div class="welcome-icon">
                             <i class="fas fa-hand-wave"></i>
@@ -87,7 +88,6 @@
                     </div>
                     
                     <div class="dashboard-grid">
-                        <!-- Alteração 3: Link direto no card de produtos -->
                         <a href="cadprodutos.html" class="dashboard-card">
                             <div class="card-icon" style="background-color: rgba(74, 111, 165, 0.1);">
                                 <i class="fas fa-box" style="color: #4a6fa5;"></i>
@@ -99,7 +99,6 @@
                             </div>
                         </a>
                         
-                        <!-- Alteração 4: Link direto no card de cardápio -->
                         <a href="cardapio.html" class="dashboard-card">
                             <div class="card-icon" style="background-color: rgba(22, 105, 122, 0.1);">
                                 <i class="fas fa-book-open" style="color: #16697a;"></i>
@@ -153,12 +152,10 @@
         </main>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
     
     <!-- JavaScript do Dashboard -->
-     <script src="firebase-config.js"></script>
     <script src="dashboard.js"></script>
 </body>
 </html>

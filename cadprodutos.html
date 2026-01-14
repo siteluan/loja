@@ -132,7 +132,7 @@
                                 <div class="form-hint">Ex: Pizza Marguerita Premium</div>
                             </div>
 
-                            <div class="form-group">
+                            <div class="form-group" id="categoriaContainer">
                                 <label for="categoriaProduto" class="form-label">
                                     <i class="fas fa-layer-group"></i>
                                     Categoria
@@ -150,12 +150,12 @@
                         </div>
 
                         <!-- Linha 2: Descrição -->
-                        <div class="form-group">
+                        <div class="form-group" id="descricaoContainer">
                             <label for="descricaoProduto" class="form-label">
                                 <i class="fas fa-align-left"></i>
                                 Descrição
                             </label>
-                            <textarea id="descricaoProduto" rows="3" placeholder="Descreva o produto em detalhes..."></textarea>
+                            <textarea id="descricaoProduto" rows="9" placeholder="Descreva o produto em detalhes..."></textarea>
                         </div>
 
                         <!-- Linha 3: Tipo e Preço -->
@@ -194,7 +194,7 @@
 
                         <!-- Linha 4: Estoque e Imagem -->
                         <div class="form-row">
-                            <div class="form-group">
+                            <div class="form-group" id="estoqueContainer">
                                 <label for="quantidadeEstoque" class="form-label">
                                     <i class="fas fa-boxes"></i>
                                     Estoque Disponível
@@ -210,7 +210,7 @@
                                 </div>
                             </div>
 
-                            <div class="form-group">
+                            <div class="form-group" id="imagemContainer">
                                 <label for="imagemURL" class="form-label">
                                     <i class="fas fa-image"></i>
                                     URL da Imagem
@@ -271,7 +271,7 @@
                         </div>
 
                         <!-- Pré-visualização da Imagem -->
-                        <div class="form-group">
+                        <div class="form-group" id="previewContainer">
                             <label class="form-label">
                                 <i class="fas fa-photo-video"></i>
                                 Pré-visualização
@@ -366,13 +366,8 @@
         <div class="toast-container" id="toastContainer"></div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    
-    <!-- Configuração do Firebase -->
-    <script src="firebase-config.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
     
     <!-- Script do Aplicativo -->
     <script src="cadprodutos.js"></script>

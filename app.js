@@ -9,8 +9,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnText = document.getElementById('btnText');
     const btnLoader = document.getElementById('btnLoader');
     const messageDiv = document.getElementById('message');
-    const forgotPasswordLink = document.getElementById('forgotPassword');
     const rememberCheckbox = document.getElementById('remember');
+
+    // Verificar se Supabase está carregado
+    if (!window.supabaseClient && typeof supabase !== 'undefined') {
+        // Tentar inicializar se ainda não estiver
+        window.supabaseClient = supabase.createClient(
+            "https://rfqwrqoszjbqdnxbroxj.supabase.co",
+            "sb_publishable_SC-jhIzJmiasPJgXazW22g_x_3N80kD"
+        );
+    }
+
+    // Obter cliente Supabase
+    const supabaseClient = window.supabaseClient;
 
     // Verificar se há credenciais salvas
     const savedEmail = localStorage.getItem('savedEmail');
@@ -50,111 +61,128 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Verificar se usuário já está autenticado
+    async function checkIfAlreadyLoggedIn() {
+        try {
+            if (!supabaseClient) {
+                console.warn('Supabase client não disponível');
+                return;
+            }
+            
+            const { data, error } = await supabaseClient.auth.getSession();
+            
+            if (error) {
+                console.error('Erro ao verificar sessão:', error);
+                return;
+            }
+            
+            // Se já tiver sessão, redireciona para o dashboard
+            if (data.session) {
+                console.log('Usuário já autenticado, redirecionando...');
+                showMessage('Você já está logado! Redirecionando...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            }
+        } catch (error) {
+            console.error('Erro ao verificar autenticação:', error);
+        }
+    }
+
+    // Executar verificação ao carregar
+    checkIfAlreadyLoggedIn();
+
     // Login com email e senha
-    loginForm.addEventListener('submit', function(e) {
+    loginForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const email = emailInput.value.trim();
         const password = passwordInput.value;
         
+        // Validações básicas
         if (!email || !password) {
             showMessage('Por favor, preencha todos os campos.', 'error');
             return;
         }
         
-        setButtonLoading(true);
-        
-        auth.signInWithEmailAndPassword(email, password)
-            .then((userCredential) => {
-                // Login bem-sucedido
-                showMessage('Login realizado com sucesso! Redirecionando...', 'success');
-                
-                // Salvar email se o checkbox estiver marcado
-                if (rememberCheckbox.checked) {
-                    localStorage.setItem('savedEmail', email);
-                } else {
-                    localStorage.removeItem('savedEmail');
-                }
-                
-                // Redirecionar para dashboard.html após 1.5 segundos
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 1500);
-            })
-            .catch((error) => {
-                // Tratamento de erros
-                let errorMessage = 'Erro ao fazer login.';
-                
-                switch (error.code) {
-                    case 'auth/invalid-email':
-                        errorMessage = 'E-mail inválido.';
-                        break;
-                    case 'auth/user-disabled':
-                        errorMessage = 'Esta conta foi desativada.';
-                        break;
-                    case 'auth/user-not-found':
-                        errorMessage = 'Não há usuário cadastrado com este e-mail.';
-                        break;
-                    case 'auth/wrong-password':
-                        errorMessage = 'Senha incorreta.';
-                        break;
-                    case 'auth/too-many-requests':
-                        errorMessage = 'Muitas tentativas de login. Tente novamente mais tarde.';
-                        break;
-                    case 'auth/network-request-failed':
-                        errorMessage = 'Erro de conexão. Verifique sua internet.';
-                        break;
-                    default:
-                        errorMessage = error.message;
-                }
-                
-                showMessage(errorMessage, 'error');
-                setButtonLoading(false);
-            });
-    });
-
-    // Recuperação de senha
-    forgotPasswordLink.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        const email = emailInput.value.trim();
-        
-        if (!email) {
-            showMessage('Digite seu e-mail para recuperar a senha.', 'error');
+        // Validação de email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showMessage('Por favor, insira um e-mail válido.', 'error');
             return;
         }
         
-        auth.sendPasswordResetEmail(email)
-            .then(() => {
-                showMessage('E-mail de recuperação enviado. Verifique sua caixa de entrada.', 'success');
-            })
-            .catch((error) => {
-                let errorMessage = 'Erro ao enviar e-mail de recuperação.';
-                
-                switch (error.code) {
-                    case 'auth/invalid-email':
-                        errorMessage = 'E-mail inválido.';
-                        break;
-                    case 'auth/user-not-found':
-                        errorMessage = 'Não há usuário cadastrado com este e-mail.';
-                        break;
-                    default:
-                        errorMessage = error.message;
-                }
-                
-                showMessage(errorMessage, 'error');
+        setButtonLoading(true);
+        
+        try {
+            // Verificar se temos cliente Supabase
+            if (!supabaseClient) {
+                throw new Error('Conexão com o servidor não disponível');
+            }
+            
+            // Login com Supabase
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: password
             });
-    });
-
-    // Verificar se o usuário já está autenticado
-    auth.onAuthStateChanged((user) => {
-        if (user) {
-            // Usuário já está logado, redirecionar para dashboard.html
-            showMessage('Você já está logado! Redirecionando...', 'success');
+            
+            if (error) {
+                throw error;
+            }
+            
+            // Login bem-sucedido
+            console.log('Login realizado:', data.user.email);
+            showMessage('Login realizado com sucesso! Redirecionando...', 'success');
+            
+            // Salvar email se o checkbox estiver marcado
+            if (rememberCheckbox.checked) {
+                localStorage.setItem('savedEmail', email);
+            } else {
+                localStorage.removeItem('savedEmail');
+            }
+            
+            // Redirecionar para dashboard.html após 1.5 segundos
             setTimeout(() => {
                 window.location.href = 'dashboard.html';
-            }, 1000);
+            }, 1500);
+            
+        } catch (error) {
+            // Tratamento de erros detalhado
+            let errorMessage = 'Erro ao fazer login.';
+            
+            if (error.message) {
+                if (error.message.includes('Invalid login credentials')) {
+                    errorMessage = 'E-mail ou senha incorretos.';
+                } else if (error.message.includes('Email not confirmed')) {
+                    errorMessage = 'Confirme seu e-mail antes de fazer login.';
+                } else if (error.message.includes('User not found')) {
+                    errorMessage = 'Não há usuário cadastrado com este e-mail.';
+                } else if (error.message.includes('Invalid email')) {
+                    errorMessage = 'E-mail inválido.';
+                } else if (error.message.includes('rate limit') || error.message.includes('too many requests')) {
+                    errorMessage = 'Muitas tentativas. Tente novamente mais tarde.';
+                } else if (error.message.includes('Network')) {
+                    errorMessage = 'Erro de conexão. Verifique sua internet.';
+                } else {
+                    errorMessage = error.message;
+                }
+            }
+            
+            showMessage(errorMessage, 'error');
+            setButtonLoading(false);
         }
     });
 
+    // Escutar mudanças no estado de autenticação
+    if (supabaseClient) {
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            console.log('Estado de autenticação alterado:', event);
+            
+            if (event === 'SIGNED_IN') {
+                console.log('Usuário autenticado:', session.user.email);
+            } else if (event === 'SIGNED_OUT') {
+                console.log('Usuário deslogado');
+            }
+        });
+    }
 });

@@ -112,7 +112,7 @@ body {
     background: hwb(0 100% 0%);
     border-radius:15px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all var(--transition-fast);
+    transition: all 0.3s ease;
 }
 
 .stat-icon {
@@ -395,7 +395,7 @@ input:checked + .slider:before {
 .form-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: px;
 }
 
 .form-label {
@@ -450,8 +450,9 @@ input:focus, textarea:focus, select:focus {
 
 textarea {
     resize: vertical;
-    min-height: 80px;
-    max-height: 150px;
+    width:100%;
+    min-height: 60px;
+    max-height: 110px;
 }
 
 .type-buttons {
@@ -792,20 +793,48 @@ textarea {
     opacity: 0.7;
 }
 
-.badge-additional {
+/* BADGE ADICIONAL */
+.badge-adicional {
     position: absolute;
     top: 10px;
     right: 10px;
-    background: var(--warning-color);
+    background: linear-gradient(135deg, #ff9800, #ff5722);
     color: white;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 11px;
+    font-weight: 600;
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
+    gap: 4px;
     z-index: 2;
+    box-shadow: 0 2px 8px rgba(255, 87, 34, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    animation: pulse 2s infinite;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-adicional i {
+    font-size: 9px;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(255, 152, 0, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 152, 0, 0);
+    }
+}
+
+.badge-adicional:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s ease;
+    background: linear-gradient(135deg, #ff5722, #f44336);
 }
 
 .product-card-header {
@@ -1299,5 +1328,21 @@ textarea {
     .btn-secondary, .btn-primary {
         width: 100%;
         justify-content: center;
+    }
+}
+
+/* Transição para campos ocultos */
+.fade-in {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }

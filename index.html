@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Firebase Auth</title>
+    <title>Login | Sistema</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -61,16 +61,17 @@
                 <i class="fas fa-user-lock"></i>
             </div>
             <h2>Sistema Seguro</h2>
-            <p>Autenticação via Firebase para garantir a segurança dos seus dados com criptografia de ponta.</p>
+            <p>Autenticação via Supabase para garantir a segurança dos seus dados com criptografia de ponta.</p>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <!-- Carregar Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
     
-    <!-- Meu JavaScript -->
-    <script src="firebase-config.js"></script>
+    <!-- Arquivos de configuração e lógica -->
+    <script src="supabase-config.js"></script>
+    <script src="auth-check.js"></script>
     <script src="app.js"></script>
+    
 </body>
 </html>
